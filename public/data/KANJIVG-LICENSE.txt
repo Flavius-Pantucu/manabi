@@ -1,0 +1,10 @@
+The stroke-order data in kanji-strokes.json is derived from KanjiVG.
+
+KanjiVG is copyright (C) 2009-2024 Ulrich Apel and is released under the
+Creative Commons Attribution-ShareAlike 3.0 licence.
+
+  https://kanjivg.tagaini.net
+  https://creativecommons.org/licenses/by-sa/3.0/
+
+Under the terms of that licence this derived data is distributed under the
+same Attribution-ShareAlike terms.
