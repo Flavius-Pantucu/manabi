@@ -22,17 +22,22 @@ import { ManabiMark } from "@/components/manabi-mark";
 
 // ─── Schemas ─────────────────────────────────────────────────────────────────
 
-const MIN_PASSWORD = 6;
+/**
+ * Matches `emailAndPassword.minPasswordLength` in lib/auth/index.ts. A lower
+ * value here would let the form accept a password the server then rejects,
+ * with an error this dialog has no field to attach to.
+ */
+const MIN_PASSWORD = 8;
 
 const loginSchema = z.object({
-  email: z.string().min(1, "Enter your email address").email("That doesn't look like an email address"),
+  email: z.email("That doesn't look like an email address"),
   password: z.string().min(1, "Enter your password"),
 });
 
 const registerSchema = z
   .object({
     name: z.string().trim().min(2, "Enter at least 2 characters"),
-    email: z.string().min(1, "Enter your email address").email("That doesn't look like an email address"),
+    email: z.email("That doesn't look like an email address"),
     password: z
       .string()
       .min(MIN_PASSWORD, `Use at least ${MIN_PASSWORD} characters`),
@@ -148,7 +153,13 @@ function FormError({ message }: { message?: string }) {
 
 // ─── Login ───────────────────────────────────────────────────────────────────
 
-function LoginForm({ onSuccess }: { onSuccess: () => void }) {
+function LoginForm({
+  onSuccess,
+  onForgot,
+}: {
+  onSuccess: () => void;
+  onForgot: () => void;
+}) {
   const { login } = useAuth();
   const {
     register,
@@ -161,10 +172,15 @@ function LoginForm({ onSuccess }: { onSuccess: () => void }) {
     try {
       await login(data.email, data.password);
       onSuccess();
-    } catch {
-      setError("root", {
-        message: "That email and password don't match. Check both and try again.",
-      });
+    } catch (err) {
+      // Deliberately the same message for a wrong password and an unknown
+      // address. Distinguishing them turns this form into a way to find out
+      // who has an account here.
+      const message =
+        err instanceof Error && /network|fetch|offline/i.test(err.message)
+          ? "Couldn't reach the server. Check your connection and try again."
+          : "That email and password don't match. Check both and try again.";
+      setError("root", { message });
     }
   };
 
@@ -212,10 +228,112 @@ function LoginForm({ onSuccess }: { onSuccess: () => void }) {
         )}
       </Button>
 
-      <p className="text-center text-xs text-muted-foreground">
-        Demo build — any email works with a password of {MIN_PASSWORD}+
-        characters.
+      <button
+        type="button"
+        onClick={onForgot}
+        className="mx-auto block rounded-sm text-xs font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+      >
+        Forgot your password?
+      </button>
+    </form>
+  );
+}
+
+// ─── Forgot password ─────────────────────────────────────────────────────────
+
+const forgotSchema = z.object({
+  email: z.email("That doesn't look like an email address"),
+});
+
+type ForgotValues = z.infer<typeof forgotSchema>;
+
+/**
+ * Always reports success.
+ *
+ * Whether or not the address has an account, the panel says the same thing and
+ * the request takes about the same time. A form that says "no account with
+ * that address" is a way to test which addresses are registered here, one
+ * request at a time.
+ */
+function ForgotPasswordForm({ onBack }: { onBack: () => void }) {
+  const { requestPasswordReset } = useAuth();
+  const [sent, setSent] = useState<string | null>(null);
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<ForgotValues>({ resolver: zodResolver(forgotSchema) });
+
+  const onSubmit = async (data: ForgotValues) => {
+    try {
+      await requestPasswordReset(data.email);
+    } catch {
+      // Swallowed on purpose — see the note above.
+    }
+    setSent(data.email);
+  };
+
+  if (sent) {
+    return (
+      <div className="space-y-5">
+        <div className="rounded-xl border border-primary/30 bg-primary/5 px-4 py-3.5">
+          <p className="text-sm font-medium">Check your inbox</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            If an account exists for <span className="font-medium">{sent}</span>,
+            a link to choose a new password is on its way. It expires in an hour.
+          </p>
+        </div>
+        <Button variant="outline" size="lg" className="w-full" onClick={onBack}>
+          Back to sign in
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
+      <p className="text-sm text-muted-foreground">
+        Enter the address you signed up with and we&rsquo;ll send you a link to
+        set a new password.
       </p>
+
+      <Field label="Email" error={errors.email?.message}>
+        {(a) => (
+          <Input
+            {...a}
+            type="email"
+            placeholder="you@example.com"
+            autoComplete="email"
+            autoFocus
+            {...register("email")}
+          />
+        )}
+      </Field>
+
+      <Button
+        type="submit"
+        size="lg"
+        className="w-full"
+        disabled={isSubmitting}
+        aria-busy={isSubmitting}
+      >
+        {isSubmitting ? (
+          <>
+            <Loader2 className="size-4 animate-spin" />
+            Sending…
+          </>
+        ) : (
+          "Send reset link"
+        )}
+      </Button>
+
+      <button
+        type="button"
+        onClick={onBack}
+        className="mx-auto block rounded-sm text-xs font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+      >
+        Back to sign in
+      </button>
     </form>
   );
 }
@@ -235,10 +353,22 @@ function RegisterForm({ onSuccess }: { onSuccess: () => void }) {
     try {
       await registerUser(data.name, data.email, data.password);
       onSuccess();
-    } catch {
-      setError("root", {
-        message: "We couldn't create your account just now. Try again.",
-      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "";
+      // "Already registered" is the one failure the learner can act on, and it
+      // belongs on the field it is about rather than in a banner at the bottom.
+      if (/already|exists|taken/i.test(message)) {
+        setError("email", {
+          message: "There's already an account with this address. Sign in instead.",
+        });
+      } else {
+        setError("root", {
+          message:
+            /network|fetch|offline/i.test(message)
+              ? "Couldn't reach the server. Check your connection and try again."
+              : "We couldn't create your account just now. Try again.",
+        });
+      }
     }
   };
 
@@ -320,33 +450,70 @@ function RegisterForm({ onSuccess }: { onSuccess: () => void }) {
 // ─── Brand panel ─────────────────────────────────────────────────────────────
 
 /**
- * The dialog's masthead.
+ * The dialog's masthead — the mark, the name, nothing else.
  *
- * What was here before: the full-colour koi-and-blossom tile at 100%, three
- * bouncing petals, and the pale logo.png inside a `bg-white/30` chip under a
- * `background/5` scrim. The mark measured under 1.5:1 against the pattern
- * behind it and the badge text was pink-on-illustration.
+ * It carried four stacked things before: the mark, "Manabi", 学び, and a
+ * mode-dependent line of prose. Four pieces of centred type is a lot of
+ * masthead to read past on the way to two input fields, and none of it told
+ * anyone anything the form does not. The dialog's accessible name and
+ * description still live in the sr-only DialogHeader, so nothing was lost to
+ * a screen reader when the visible copy went.
  *
- * The panel is one flat brand surface, identical in light and dark, so it
- * reads as a stamp rather than a window. Everything on it is a verified pair.
+ * The ground follows the same SHAPE as the app's ambient background — artwork,
+ * then a graded scrim, then gloss — so the header reads as a window onto the
+ * page behind the dialog rather than as a separate brand stamp. The gloss is
+ * what makes it a pane: a light sweep off the top edge plus the
+ * `--glass-highlight` hairline.
+ *
+ * It does NOT reuse the ambient numbers. Pointing `--ambient-blur` and
+ * `--ambient-scrim` at this tile made it invisible: those values are built to
+ * flatten a photograph, and this is pastel linework whose whole signal is
+ * thin strokes at low contrast against their own cream ground. The pattern
+ * has its own `--pattern-*` set instead — see globals.css for the numbers and
+ * the measurements behind them.
  */
-function AuthPanel({ mode }: { mode: AuthTab }) {
+function AuthPanel() {
   return (
-    <div className="-mx-6 -mt-6 mb-5 bg-panel px-6 pb-6 pt-7 text-center">
-      <ManabiMark className="mx-auto size-9 text-panel-mark" />
+    <div className="relative -mx-6 -mt-6 mb-5 overflow-hidden border-b border-border px-6 pb-7 pt-8 text-center">
+      <div aria-hidden="true" className="absolute inset-0">
+        {/* Overscanned so that `--pattern-blur` can be raised without the
+            layer's own edges fading in from the panel border. It is 0 by
+            default — blur is what killed the linework the first time. */}
+        <div
+          className="absolute inset-[-8%]"
+          style={{
+            backgroundImage: "url('/images/cute-pattern.png')",
+            backgroundSize: "280px",
+            opacity: "var(--pattern-photo)",
+            filter: "blur(var(--pattern-blur))",
+          }}
+        />
+        <div
+          className="absolute inset-0"
+          style={{ background: "var(--pattern-scrim)" }}
+        />
+        {/* Gloss. Theme-aware through the token: a white sweep on light, a
+            barely-there lift on dark. */}
+        <div
+          className="absolute inset-x-0 top-0 h-2/3"
+          style={{
+            background:
+              "linear-gradient(180deg, var(--glass-highlight) 0%, transparent 100%)",
+            opacity: 0.5,
+          }}
+        />
+        <div
+          className="absolute inset-x-0 top-0 h-px"
+          style={{ background: "var(--glass-highlight)" }}
+        />
+      </div>
 
-      <p className="mt-3 text-2xl font-semibold tracking-tight text-panel-foreground">
-        Manabi
-      </p>
-      <p lang="ja" className="mt-0.5 font-jp text-sm text-panel-muted">
-        学び
-      </p>
-
-      <p className="mx-auto mt-2.5 max-w-[30ch] text-sm leading-relaxed text-panel-muted">
-        {mode === "login"
-          ? "Pick up your streak where you left it."
-          : "Your streak, your reviews, and your progress — kept across devices."}
-      </p>
+      <div className="relative">
+        <ManabiMark className="mx-auto size-12" />
+        <p className="mt-3 text-2xl font-semibold tracking-tight text-foreground">
+          Manabi
+        </p>
+      </div>
     </div>
   );
 }
@@ -354,6 +521,13 @@ function AuthPanel({ mode }: { mode: AuthTab }) {
 // ─── Dialog ──────────────────────────────────────────────────────────────────
 
 export type AuthTab = "login" | "register";
+
+/**
+ * Forgetting a password is a detour off the sign-in tab, not a third thing you
+ * might have come here to do — so it replaces the tabs rather than joining
+ * them.
+ */
+type Mode = AuthTab | "forgot";
 
 interface AuthDialogProps {
   open: boolean;
@@ -366,7 +540,7 @@ export function AuthDialog({
   onOpenChange,
   defaultTab = "login",
 }: AuthDialogProps) {
-  const [tab, setTab] = useState<AuthTab>(defaultTab);
+  const [tab, setTab] = useState<Mode>(defaultTab);
 
   // `useState(defaultTab)` only reads the prop once, so the dialog used to
   // reopen on whichever tab it was last left on — "Sign up" in the sidebar
@@ -374,6 +548,8 @@ export function AuthDialog({
   const [wasOpen, setWasOpen] = useState(open);
   if (open !== wasOpen) {
     setWasOpen(open);
+    // Also drops "forgot" — reopening the dialog should not resume a detour
+    // the learner abandoned.
     if (open) setTab(defaultTab);
   }
 
@@ -386,33 +562,44 @@ export function AuthDialog({
       <DialogContent className="gap-0 overflow-hidden p-6 sm:max-w-[420px]">
         <DialogHeader className="sr-only">
           <DialogTitle>
-            {tab === "login" ? "Sign in to Manabi" : "Create a Manabi account"}
+            {tab === "forgot"
+              ? "Reset your Manabi password"
+              : tab === "login"
+                ? "Sign in to Manabi"
+                : "Create a Manabi account"}
           </DialogTitle>
           <DialogDescription>
-            Sign in or create an account to save your progress.
+            Sign in or create an account to save your progress across devices.
           </DialogDescription>
         </DialogHeader>
 
-        <AuthPanel mode={tab} />
+        <AuthPanel />
 
-        <Tabs value={tab} onValueChange={(v) => setTab(v as AuthTab)}>
-          <TabsList className="mb-6 h-10 w-full">
-            <TabsTrigger value="login" className="flex-1">
-              Sign in
-            </TabsTrigger>
-            <TabsTrigger value="register" className="flex-1">
-              Create account
-            </TabsTrigger>
-          </TabsList>
+        {tab === "forgot" ? (
+          <ForgotPasswordForm onBack={() => setTab("login")} />
+        ) : (
+          <Tabs value={tab} onValueChange={(v) => setTab(v as Mode)}>
+            <TabsList className="mb-6 h-10 w-full">
+              <TabsTrigger value="login" className="flex-1">
+                Sign in
+              </TabsTrigger>
+              <TabsTrigger value="register" className="flex-1">
+                Create account
+              </TabsTrigger>
+            </TabsList>
 
-          <TabsContent value="login" className="mt-0">
-            <LoginForm onSuccess={handleSuccess} />
-          </TabsContent>
+            <TabsContent value="login" className="mt-0">
+              <LoginForm
+                onSuccess={handleSuccess}
+                onForgot={() => setTab("forgot")}
+              />
+            </TabsContent>
 
-          <TabsContent value="register" className="mt-0">
-            <RegisterForm onSuccess={handleSuccess} />
-          </TabsContent>
-        </Tabs>
+            <TabsContent value="register" className="mt-0">
+              <RegisterForm onSuccess={handleSuccess} />
+            </TabsContent>
+          </Tabs>
+        )}
       </DialogContent>
     </Dialog>
   );

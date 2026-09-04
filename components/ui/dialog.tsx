@@ -38,7 +38,10 @@ function DialogOverlay({
     <DialogPrimitive.Overlay
       data-slot="dialog-overlay"
       className={cn(
-        'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-50 bg-foreground/55 backdrop-blur-[2px]',
+        // `bg-foreground/55` used to sit here, which is correct in light mode and
+        // backwards in dark: --foreground is near-white there, so the scrim
+        // became a white wash over a dark page. --scrim is dark in both themes.
+        'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-50 bg-scrim backdrop-blur-sm',
         className,
       )}
       {...props}

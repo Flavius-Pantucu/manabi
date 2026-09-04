@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -36,8 +36,13 @@ import {
   Legend,
 } from "recharts";
 import { useAuth } from "@/lib/auth-context";
+import { downscaleImage } from "@/lib/image";
+import { useAppDispatch } from "@/lib/store/hooks";
+import { resetSrsState } from "@/lib/store/features/srs-slice";
+import { resetLearningState } from "@/lib/store/features/learning-slice";
+import { clearSyncState } from "@/lib/sync/client";
 import { useLearning } from "@/lib/learning-context";
-import { AvatarBadge } from "@/components/app-shell";
+import { AvatarBadge, useAuthPrompt } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -291,7 +296,10 @@ function VocabBreakdown({
 // ─── Edit Profile Sheet ───────────────────────────────────────────────────────
 
 function EditProfileInline({ onDone }: { onDone: () => void }) {
-  const { user, updateUser } = useAuth();
+  const { user, updateUser, changeEmail } = useAuth();
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [name, setName] = useState(user?.name ?? "");
   const [email, setEmail] = useState(user?.email ?? "");
 
@@ -302,26 +310,62 @@ function EditProfileInline({ onDone }: { onDone: () => void }) {
     { id: "cat", url: "/avatars/cat.png", label: "Lucky Cat" },
   ];
 
-  const handleSave = () => {
-    updateUser({
-      name: name.trim() || user!.name,
-      email: email.trim() || user!.email,
-    });
-    onDone();
+  /**
+   * Name and email are two different operations now.
+   *
+   * A name is just a column. An email address is an identity — changing it
+   * has to go through Better Auth so the account's credentials move with it,
+   * which is why it is not part of `updateUser`.
+   */
+  const handleSave = async () => {
+    setSaving(true);
+    setSaveError(null);
+    try {
+      const nextName = name.trim() || user!.name;
+      if (nextName !== user!.name) await updateUser({ name: nextName });
+
+      const nextEmail = email.trim().toLowerCase();
+      if (nextEmail && nextEmail !== user!.email.toLowerCase()) {
+        await changeEmail(nextEmail);
+      }
+      onDone();
+    } catch (err) {
+      setSaveError(
+        err instanceof Error ? err.message : "Couldn't save those changes.",
+      );
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleAvatarSelect = (url: string) => {
-    updateUser({ avatarUrl: url });
+    void updateUser({ avatarUrl: url }).catch((err) =>
+      setSaveError(err instanceof Error ? err.message : "Couldn't set that avatar."),
+    );
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        updateUser({ avatarUrl: reader.result as string });
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    setSaveError(null);
+    setUploading(true);
+    try {
+      // Resized here rather than rejected. The avatar rides in every session
+      // payload as a data URL, so it has to be small — but "pick a photo under
+      // 96 KB" is not something anyone can act on.
+      const { dataUrl } = await downscaleImage(file);
+      await updateUser({ avatarUrl: dataUrl });
+    } catch (err) {
+      setSaveError(
+        err instanceof Error ? err.message : "Couldn't use that image.",
+      );
+    } finally {
+      setUploading(false);
+      // Clear the input, so picking the same file again still fires onChange.
+      e.target.value = "";
     }
   };
 
@@ -395,19 +439,39 @@ function EditProfileInline({ onDone }: { onDone: () => void }) {
                 onChange={handleFileUpload}
               />
               <div className="flex flex-col items-center gap-1 text-[10px] text-muted-foreground">
-                <Edit2 className="size-4" />
-                <span>Upload</span>
+                {uploading ? (
+                  <span className="size-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                ) : (
+                  <Edit2 className="size-4" />
+                )}
+                <span>{uploading ? "Saving…" : "Upload"}</span>
               </div>
             </label>
           </div>
         </div>
       </div>
 
+      {saveError && (
+        <p
+          role="alert"
+          className="rounded-lg border border-destructive/35 bg-destructive/10 px-3 py-2 text-sm font-medium text-destructive"
+        >
+          {saveError}
+        </p>
+      )}
+
       <div className="flex gap-2 pt-2">
-        <Button size="sm" onClick={handleSave} className="gap-2 px-6">
-          <Check className="size-4" /> Save Changes
+        <Button
+          size="sm"
+          onClick={handleSave}
+          disabled={saving}
+          aria-busy={saving}
+          className="gap-2 px-6"
+        >
+          <Check className="size-4" />
+          {saving ? "Saving…" : "Save Changes"}
         </Button>
-        <Button size="sm" variant="ghost" onClick={onDone}>
+        <Button size="sm" variant="ghost" onClick={onDone} disabled={saving}>
           Cancel
         </Button>
       </div>
@@ -464,6 +528,117 @@ function LevelBadge({ lessonsCompleted }: { lessonsCompleted: number }) {
   );
 }
 
+// ─── Reset progress ───────────────────────────────────────────────────────────
+
+/**
+ * Erasing study history, as distinct from deleting the account.
+ *
+ * Gated behind typing the account's own email. The numbers this clears are the
+ * one thing in the product that cannot be recreated — a year of review history
+ * is a year — so it should not be one stray click away, and a "type this to
+ * confirm" is the cheapest gate that actually makes someone read the sentence.
+ */
+function ResetProgressPanel() {
+  const { user } = useAuth();
+  const dispatch = useAppDispatch();
+  const [open, setOpen] = useState(false);
+  const [confirm, setConfirm] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const matches = confirm.trim().toLowerCase() === (user?.email ?? "").toLowerCase();
+
+  const handleReset = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/me/progress", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confirm }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.message ?? "Couldn't reset your progress.");
+      }
+
+      // Clear this device too, and drop the sync cursor — otherwise the next
+      // push would hand the server back everything it was just asked to erase.
+      dispatch(resetSrsState());
+      dispatch(resetLearningState());
+      clearSyncState();
+
+      setOpen(false);
+      setConfirm("");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Couldn't reset your progress.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="rounded-2xl border border-destructive/25 bg-destructive/5 p-6">
+      <h2 className="mb-1 flex items-center gap-2 text-lg font-bold">
+        <AlertCircle className="size-5 text-destructive" />
+        Reset progress
+      </h2>
+      <p className="mb-4 text-sm text-muted-foreground">
+        Erases every card, review, streak and quiz result on this account, on
+        all your devices. Your account, settings and any decks you wrote
+        yourself are kept. This cannot be undone.
+      </p>
+
+      {!open ? (
+        <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
+          Reset my progress…
+        </Button>
+      ) : (
+        <div className="space-y-3">
+          <Label htmlFor="reset-confirm" className="text-sm font-medium">
+            Type <span className="font-mono">{user?.email}</span> to confirm
+          </Label>
+          <Input
+            id="reset-confirm"
+            value={confirm}
+            onChange={(e) => setConfirm(e.target.value)}
+            autoComplete="off"
+            className="bg-background/60"
+          />
+          {error && (
+            <p role="alert" className="text-sm font-medium text-destructive">
+              {error}
+            </p>
+          )}
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="destructive"
+              disabled={!matches || busy}
+              aria-busy={busy}
+              onClick={handleReset}
+            >
+              {busy ? "Erasing…" : "Erase everything"}
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              disabled={busy}
+              onClick={() => {
+                setOpen(false);
+                setConfirm("");
+                setError(null);
+              }}
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ProfilePage() {
@@ -477,17 +652,48 @@ export default function ProfilePage() {
     quizScores,
   } = useLearning();
   const router = useRouter();
+  const { openLogin } = useAuthPrompt();
   const [editing, setEditing] = useState(false);
 
-  // Redirect if not logged in (once loading resolves)
-  useEffect(() => {
-    if (!isLoading && !user) router.replace("/");
-  }, [isLoading, user, router]);
-
-  if (isLoading || !user) {
+  if (isLoading) {
     return (
       <div className="flex min-h-60 items-center justify-center">
         <div className="size-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+      </div>
+    );
+  }
+
+  /**
+   * Signed out.
+   *
+   * This used to `router.replace("/")`, which is indistinguishable from the
+   * page being broken: you click Profile, the address bar flickers, and you
+   * are back on the dashboard with nothing said. A session can lapse for
+   * ordinary reasons — it expired, the cookie was cleared, you are on a
+   * different host than the one it was set for — and every one of them is
+   * fixed by signing in, so say that instead of navigating away.
+   */
+  if (!user) {
+    return (
+      <div className="flex min-h-[60vh] flex-col items-center justify-center px-4 text-center">
+        <span className="mb-5 flex size-14 items-center justify-center rounded-full bg-muted">
+          <LogOut className="size-6 text-muted-foreground" />
+        </span>
+        <h1 className="mb-2 text-2xl font-semibold tracking-tight text-foreground">
+          You&rsquo;re signed out
+        </h1>
+        <p className="mb-8 max-w-md text-muted-foreground">
+          Sign in to see your profile, your streak and your review history.
+          Anything you have studied on this device is still here.
+        </p>
+        <div className="flex gap-3">
+          <Button size="lg" onClick={openLogin}>
+            Sign in
+          </Button>
+          <Button size="lg" variant="outline" onClick={() => router.push("/")}>
+            Back to dashboard
+          </Button>
+        </div>
       </div>
     );
   }
@@ -674,6 +880,8 @@ export default function ProfilePage() {
           </div>
         </div>
       </div>
+
+      <ResetProgressPanel />
     </div>
   );
 }

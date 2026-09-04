@@ -10,10 +10,15 @@ import { useEffect, useRef } from "react";
  * page subtree — to move one background image. This writes the transform
  * straight to the node instead, so scrolling costs a single style mutation.
  *
+ * The travel is CLAMPED to `maxShift` (px). The layer is only oversized by a
+ * fixed inset, so an unclamped `scrollY * factor` walks its own edge into
+ * frame on a long page — a stripe of empty ground at the bottom of a 6000px
+ * review list. Past the clamp the image simply rests.
+ *
  * Honors `prefers-reduced-motion`: parallax is vestibular-triggering motion
  * with no informational value, so it is simply not applied.
  */
-export function useParallax(factor = 0.03, scale = 1.06) {
+export function useParallax(factor = 0.12, scale = 1.14, maxShift = 90) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -23,7 +28,8 @@ export function useParallax(factor = 0.03, scale = 1.06) {
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
 
     const apply = () => {
-      el.style.transform = `translate3d(0, ${window.scrollY * factor}px, 0) scale(${scale})`;
+      const y = Math.min(window.scrollY * factor, maxShift);
+      el.style.transform = `translate3d(0, ${y}px, 0) scale(${scale})`;
     };
     const rest = () => {
       el.style.transform = `scale(${scale})`;
@@ -56,7 +62,7 @@ export function useParallax(factor = 0.03, scale = 1.06) {
       window.removeEventListener("scroll", onScroll);
       reduced.removeEventListener("change", sync);
     };
-  }, [factor, scale]);
+  }, [factor, scale, maxShift]);
 
   return ref;
 }

@@ -6,6 +6,7 @@ import {
   type ReviewLogEntry,
   type SrsCard,
 } from "@/lib/srs/scheduler";
+import type { SyncChanges } from "@/lib/sync/protocol";
 
 export interface SrsState {
   /** Every card the learner has ever seen, keyed by CardId. */
@@ -118,13 +119,86 @@ const srsSlice = createSlice({
       else state.settings.disabledDecks.push(id);
     },
 
+    /** Back to a blank slate — used when a different account signs in here. */
+    resetSrsState: () => initialState,
+
     /** Wholesale replace — used by Import. */
     replaceSrsState: (_state, action: PayloadAction<SrsState>) => action.payload,
+
+    /**
+     * Fold in what the server sent.
+     *
+     * The rules match `mergeBackup` in lib/srs/backup.ts and the SQL in
+     * lib/sync/server.ts, with one deliberate difference: cards apply on
+     * *strictly* newer `lastReview`, where the server uses `>=`.
+     *
+     * The asymmetry is the point. This device may hold edits it has not
+     * managed to push yet — a card buried thirty seconds ago on a train — and
+     * a tie should not let the server's older copy overwrite them. The server
+     * has no such worry: by the time it compares, it has both versions.
+     */
+    mergeRemote: (state, action: PayloadAction<SyncChanges>) => {
+      const { cards, reviews, daily, settings } = action.payload;
+
+      for (const c of cards) {
+        const cur = state.cards[c.id];
+        if (cur && (c.lastReview ?? 0) <= (cur.lastReview ?? 0)) continue;
+        state.cards[c.id] = {
+          id: c.id,
+          phase: c.phase,
+          stability: c.stability,
+          difficulty: c.difficulty,
+          due: c.due,
+          lastReview: c.lastReview,
+          reps: c.reps,
+          lapses: c.lapses,
+          step: c.step,
+        };
+      }
+
+      if (reviews.length) {
+        const seen = new Set(state.log.map((l) => `${l.id}@${l.at}`));
+        for (const r of reviews) {
+          const k = `${r.id}@${r.at}`;
+          if (seen.has(k)) continue;
+          seen.add(k);
+          state.log.push(r as ReviewLogEntry);
+        }
+        state.log.sort((a, b) => a.at - b.at);
+        if (state.log.length > MAX_LOG) {
+          state.log.splice(0, state.log.length - MAX_LOG);
+        }
+      }
+
+      // Per-field maximum: these are the daily caps the queue reads, and
+      // under-counting would let a learner exceed them by switching device.
+      for (const d of daily) {
+        const cur = state.daily[d.day];
+        state.daily[d.day] = cur
+          ? {
+              reviews: Math.max(cur.reviews, d.reviews),
+              newCards: Math.max(cur.newCards, d.newCards),
+              correct: Math.max(cur.correct, d.correct),
+            }
+          : { reviews: d.reviews, newCards: d.newCards, correct: d.correct };
+      }
+
+      if (settings) {
+        state.settings = {
+          newPerDay: settings.newPerDay,
+          maxReviewsPerDay: settings.maxReviewsPerDay,
+          disabledDecks: settings.disabledDecks,
+          levels: settings.levels.length ? settings.levels : state.settings.levels,
+        };
+      }
+    },
   },
 });
 
 export const {
   gradeCard,
+  mergeRemote,
+  resetSrsState,
   toggleLevel,
   buryCard,
   resetCard,

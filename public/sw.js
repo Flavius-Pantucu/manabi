@@ -12,7 +12,7 @@
  * Anything non-GET or cross-origin is passed straight through.
  */
 
-const VERSION = "manabi-v3";
+const VERSION = "manabi-v4";
 const SHELL = `${VERSION}-shell`;
 const ASSETS = `${VERSION}-assets`;
 
@@ -35,7 +35,7 @@ const PRECACHE = [
   "/data/grammar/n5.json",
   "/data/reading/n5.json",
   "/data/strokes/n5.json",
-  "/mark.svg",
+  "/icon.png",
   "/manifest.json",
 ];
 

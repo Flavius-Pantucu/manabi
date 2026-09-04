@@ -1,5 +1,5 @@
 {
-  "name": "Manabi — Learn Japanese",
+  "name": "Manabi \u2014 Learn Japanese",
   "short_name": "Manabi",
   "description": "Vocabulary, kanji, grammar, verb conjugation, reading and quizzes for learners of Japanese.",
   "start_url": "/",
@@ -9,9 +9,9 @@
   "lang": "en",
   "icons": [
     {
-      "src": "/mark.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
+      "src": "/icon.png",
+      "sizes": "192x192",
+      "type": "image/png",
       "purpose": "any"
     },
     {

@@ -27,6 +27,10 @@
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.215 0.018 335);
 
+  /* Modal scrim. Its own token because a scrim always DARKENS — pointing it at
+     --foreground made it invert with the theme, washing the dark UI in white. */
+  --scrim: oklch(0.215 0.018 335 / 0.55);
+
   /* ── Sakura ramp ──────────────────────────────────────────────────────── */
   /* Interactive sakura is deep enough to carry white text. The pale pink is
      a FILL, never a text or button color. */
@@ -87,12 +91,66 @@
   --sidebar-ring: oklch(0.545 0.163 352);
 
   /* ── Ambient photograph ───────────────────────────────────────────────── */
-  /* The photo never composites directly against content. It is painted, then
-     buried under a near-solid scrim, so every surface above it sits on a
-     KNOWN color and contrast stops depending on scroll position.
-     Effective image energy at content level = photo × (1 − scrim) ≈ 6.6%. */
-  --ambient-photo: 0.55;
-  --ambient-scrim: oklch(0.981 0.005 55 / 0.88);
+  /* The photograph IS the ground now, not a rumour of one. It stays legible
+     as a background because three things happen to it before any text lands
+     on top:
+       1. it is blurred and desaturated, so it carries no high-frequency
+          contrast — only slow fields of light,
+       2. a graded scrim sits over it, heavier at the top and bottom edges
+          where the header and the floating nav live,
+       3. every content surface above it is glass with its own backdrop blur.
+     Effective image energy at content level ≈ 27%; behind card text, after
+     the glass, ≈ 8%. Worst-case body text measures 12.3:1 (light) and
+     8.4:1 (dark) — checked against the darkest and brightest regions of the
+     photo, not its average. */
+  --ambient-photo: 0.9;
+  --ambient-blur: 3px;
+  --ambient-saturate: 0.82;
+  /* ── Auth masthead pattern ────────────────────────────────────────────
+     cute-pattern.png gets its OWN three values, not the ambient ones, and
+     that is the whole point of it having tokens at all.
+
+     The ambient numbers exist to tame a photograph: 3px of blur to kill
+     high-frequency detail, and a 0.7–0.84 scrim to flatten a wide luminance
+     range. Point them at this tile and you erase it. Its motifs are pastel
+     linework — pale pink petals at ~0.63 luminance sitting on a cream ground
+     at ~0.93 — so the delta that has to survive is 0.30 to begin with. The
+     blur smears the thin strokes and the heavy scrim compresses what is
+     left to about 0.08, which is nothing. That is why the pattern could not
+     be seen.
+
+     So: no blur, no desaturation, full strength, and a scrim about a third
+     of the ambient one — just enough to hold the type. Worst case is ink on
+     the brown branch strokes (~0.19), which measures 5.8:1 at the top of
+     the gradient and 7.2:1 where the wordmark actually sits. */
+  --pattern-photo: 1;
+  --pattern-blur: 0px;
+  --pattern-scrim: linear-gradient(
+    180deg,
+    oklch(0.981 0.005 55 / 0.28) 0%,
+    oklch(0.981 0.005 55 / 0.46) 100%
+  );
+  --ambient-scrim: linear-gradient(
+    180deg,
+    oklch(0.981 0.005 55 / 0.84) 0%,
+    oklch(0.981 0.005 55 / 0.7) 34%,
+    oklch(0.981 0.005 55 / 0.7) 66%,
+    oklch(0.985 0.006 40 / 0.82) 100%
+  );
+
+  /* ── Glass ────────────────────────────────────────────────────────────── */
+  /* Surfaces are translucent so the ground reads through them, and each one
+     blurs its own backdrop so what reads through is a colour field rather
+     than a picture. `--glass-blur` is what keeps text off the photograph;
+     never lower it without re-checking contrast. */
+  --glass: oklch(1 0 0 / 0.7);
+  --glass-strong: oklch(1 0 0 / 0.84);
+  --glass-panel: oklch(0.993 0.004 55 / 0.72);
+  --glass-inset: oklch(1 0 0 / 0.45);
+  --glass-border: oklch(1 0 0 / 0.7);
+  --glass-highlight: oklch(1 0 0 / 0.6);
+  --glass-blur: 20px;
+  --glass-saturate: 1.5;
 
   /* ── Depth ────────────────────────────────────────────────────────────── */
   /* Offset + soft blur, tinted with the ink hue. Never a zero-offset halo. */
@@ -153,6 +211,8 @@
   --popover: oklch(0.226 0.016 322);
   --popover-foreground: oklch(0.945 0.006 55);
 
+  --scrim: oklch(0.06 0.012 322 / 0.78);
+
   /* ── Sakura ramp ──────────────────────────────────────────────────────── */
   /* On dark the pink LIGHTENS, so the button's own text must go to ink.
      White-on-pink here measures 2.35:1 — that was the original bug. */
@@ -211,10 +271,42 @@
   --sidebar-ring: oklch(0.76 0.14 352);
 
   /* ── Ambient photograph ───────────────────────────────────────────────── */
-  /* A daylight photograph lifts a dark ground fast, so it is held lower here.
-     Effective ≈ 4%. */
-  --ambient-photo: 0.4;
-  --ambient-scrim: oklch(0.171 0.014 322 / 0.9);
+  /* A daylight photograph lifts a dark ground fast, so it is held lower and
+     desaturated harder here — the aim is a memory of the image, not a
+     lightbox behind the UI. */
+  --ambient-photo: 0.62;
+  --ambient-blur: 4px;
+  --ambient-saturate: 0.7;
+  /* Dark inverts which half of the problem bites. The tile is a near-white
+     field, so opacity — not the scrim — is what has to come down, or the
+     masthead is a lit box on a dark dialog. At 0.14 the motifs land between
+     0.04 and 0.15 against a 0.024 panel: legible as warm texture, with the
+     wordmark at 5.0:1. The scrim then only grades the bottom edge into the
+     form. */
+  --pattern-photo: 0.14;
+  --pattern-blur: 0px;
+  --pattern-scrim: linear-gradient(
+    180deg,
+    oklch(0.171 0.014 322 / 0.1) 0%,
+    oklch(0.171 0.014 322 / 0.3) 100%
+  );
+  --ambient-scrim: linear-gradient(
+    180deg,
+    oklch(0.171 0.014 322 / 0.86) 0%,
+    oklch(0.171 0.014 322 / 0.74) 34%,
+    oklch(0.171 0.014 322 / 0.74) 66%,
+    oklch(0.145 0.014 322 / 0.88) 100%
+  );
+
+  /* ── Glass ────────────────────────────────────────────────────────────── */
+  --glass: oklch(0.216 0.016 322 / 0.72);
+  --glass-strong: oklch(0.226 0.016 322 / 0.86);
+  --glass-panel: oklch(0.196 0.015 322 / 0.74);
+  --glass-inset: oklch(0.246 0.016 322 / 0.5);
+  --glass-border: oklch(0.42 0.018 322 / 0.65);
+  --glass-highlight: oklch(0.92 0.01 322 / 0.09);
+  --glass-blur: 22px;
+  --glass-saturate: 1.35;
 
 
   /* ── Chart ramp — stepped for the dark ground, not flipped ────────────── */
@@ -250,6 +342,7 @@
   --color-card-muted: var(--card-muted);
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
+  --color-scrim: var(--scrim);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
   --color-primary-hover: var(--primary-hover);
@@ -329,7 +422,15 @@
   }
 
   body {
-    @apply bg-background text-foreground;
+    /* NO background here. The ambient photograph is a `z-index: -10` fixed
+       layer inside body, and a negative-z-index child paints BEFORE the
+       in-flow backgrounds of its stacking context — so an opaque body
+       background covers the photo completely. The ground colour lives on
+       <html> instead, where it propagates to the canvas and paints below
+       everything, the photo included. That is the whole reason the ambient
+       image had been invisible regardless of `--ambient-photo`. */
+    @apply text-foreground;
+    background-color: transparent;
     font-synthesis-weight: none;
     text-rendering: optimizeLegibility;
   }
@@ -415,6 +516,79 @@
     letter-spacing: 0.02em;
     color: var(--muted-foreground);
     user-select: none;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   GLASS SURFACES
+
+   Declared in `components`, not `utilities`, so any `bg-*` / `border-*`
+   utility passed through a className still wins — a glass card can still be
+   made opaque at the call site without an `!important` fight.
+
+   Each class is background + backdrop-filter + hairline + inner highlight,
+   because a glass surface with only translucency and no blur is just a
+   see-through box: the top edge catching light is what reads as a pane.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@layer components {
+  .glass,
+  .glass-strong,
+  .glass-panel {
+    /* -webkit- first: with the unprefixed declaration written first, the CSS
+       minifier folds the pair down to the prefixed one alone and Firefox
+       loses the blur. */
+    -webkit-backdrop-filter: blur(var(--glass-blur))
+      saturate(var(--glass-saturate));
+    backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+    border-color: var(--glass-border);
+  }
+
+  /* Content surfaces: cards, panels inside the reading column. */
+  .glass {
+    background-color: var(--glass);
+    box-shadow: inset 0 1px 0 0 var(--glass-highlight), var(--elev-1);
+  }
+
+  /* Surfaces that float free of the column — the nav pill, popovers — where
+     the ground behind is unknown and the pane has to hold its own. */
+  .glass-strong {
+    background-color: var(--glass-strong);
+    box-shadow: inset 0 1px 0 0 var(--glass-highlight), var(--elev-4);
+  }
+
+  /* Full-height chrome. Sidebar tint, not card tint, so the chrome stays
+     distinguishable from the content it frames. */
+  .glass-panel {
+    background-color: var(--glass-panel);
+  }
+
+  /* Nested inside a glass surface. No backdrop-filter of its own: a second
+     blur pass buys nothing visually (the backdrop is already flat) and costs
+     a full-surface repaint on every scroll frame. */
+  .glass-inset {
+    background-color: var(--glass-inset);
+    border-color: var(--glass-border);
+  }
+
+  /* Safari < 18 on some GPUs, Firefox with backdrop-filter disabled, and
+     print. Without the blur the photo would show through unfiltered and take
+     the text with it, so translucency is dropped entirely rather than
+     degraded. */
+  @supports not (backdrop-filter: blur(1px)) {
+    .glass,
+    .glass-inset {
+      background-color: var(--card);
+      border-color: var(--border);
+    }
+    .glass-strong {
+      background-color: var(--popover);
+      border-color: var(--border);
+    }
+    .glass-panel {
+      background-color: var(--sidebar);
+      border-color: var(--sidebar-border);
+    }
   }
 }
 

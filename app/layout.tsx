@@ -7,6 +7,7 @@ import { LearningProvider } from "@/lib/learning-context";
 import { AuthProvider } from "@/lib/auth-context";
 import { ReduxProvider } from "@/lib/store/provider";
 import { ContentProvider } from "@/lib/content/provider";
+import { SyncProvider } from "@/lib/sync/provider";
 import { ServiceWorker } from "@/components/service-worker";
 import "./globals.css";
 
@@ -24,13 +25,12 @@ export const metadata: Metadata = {
   applicationName: "Manabi",
   manifest: "/manifest.json",
   icons: {
-    // Vector first: the mark is drawn, so it stays crisp at every size and
-    // needs no raster ladder. The PNG stays as the fallback for Safari's
-    // touch icon.
-    icon: [
-      { url: "/mark.svg", type: "image/svg+xml" },
-      { url: "/apple-touch-icon.png", type: "image/png", sizes: "180x180" },
-    ],
+    // Raster, because the brand mark is artwork (public/logo.png), not a
+    // drawn path — there is no vector of it to serve. `icon.png` is that file
+    // resampled to 192px so the tab does not pull the 229 KB original; the
+    // touch icon is resampled to 156px and padded out to 180 on washi,
+    // because iOS composites a transparent icon onto black.
+    icon: [{ url: "/icon.png", type: "image/png", sizes: "192x192" }],
     apple: [{ url: "/apple-touch-icon.png", sizes: "180x180" }],
   },
 };
@@ -65,11 +65,15 @@ export default function RootLayout({
             disableTransitionOnChange
           >
             <AuthProvider>
-              <ContentProvider>
-              <LearningProvider>
-                <AppShell>{children}</AppShell>
-              </LearningProvider>
-              </ContentProvider>
+              {/* Inside AuthProvider and the store: it needs both to know
+                  who is signed in and what there is to send. */}
+              <SyncProvider>
+                <ContentProvider>
+                  <LearningProvider>
+                    <AppShell>{children}</AppShell>
+                  </LearningProvider>
+                </ContentProvider>
+              </SyncProvider>
             </AuthProvider>
           </ThemeProvider>
         </ReduxProvider>

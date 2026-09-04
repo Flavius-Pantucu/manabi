@@ -1,63 +1,50 @@
 "use client";
 
-import { useId } from "react";
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 
 /**
- * The Manabi mark — a five-petal sakura drawn as one petal rotated 5× about
- * the center, with the flower's eye knocked out through a mask.
+ * The Manabi mark — the sakura artwork from `public/logo.png`.
  *
- * Replaces the previous logo.png (a pale pink flower on transparency), which
- * disappeared against light and pink surfaces, could not invert for dark mode,
- * and cost 229 KB. This inherits `currentColor`, so it is legible on any
- * surface the caller has already made accessible, and it holds its shape at
- * favicon size because it is a solid silhouette rather than an outline.
+ * It points at `/icon.png`, NOT at `logo.png` itself. `next.config.mjs` sets
+ * `images.unoptimized`, so next/image serves whatever file it is handed at
+ * full size — and logo.png is a 465px, 229 KB source rendered here between 24
+ * and 44 CSS px. `/icon.png` is that same artwork resampled to 192px (48 KB),
+ * which still covers the largest use on a 3× display, and it is the file the
+ * favicon and the manifest already reference, so it is one cache entry rather
+ * than two. If image optimization is ever turned on, point this back at
+ * `/logo.png` and let Next build the srcset.
+ *
+ * Decorative by default. Both current call sites set the word "Manabi" in
+ * text right beside the mark, so an alt string here would make a screen
+ * reader say the name twice; pass `label` only when the mark stands alone.
  */
-
-const PETAL =
-  "M12 12C11.4 10.6 9.8 9.2 8.85 6.9 8.4 5 9.35 3.1 10.8 2.9 " +
-  "11.4 2.82 11.82 3.35 12 4.05 12.18 3.35 12.6 2.82 13.2 2.9 " +
-  "14.65 3.1 15.6 5 15.15 6.9 14.2 9.2 12.6 10.6 12 12Z";
-
-export function ManabiMark({ className }: { className?: string }) {
-  const id = useId();
-  const maskId = `sakura-${id}`;
-  const petalId = `petal-${id}`;
-
+export function ManabiMark({
+  className,
+  label,
+}: {
+  className?: string;
+  label?: string;
+}) {
   return (
-    <svg
-      viewBox="0 0 24 24"
-      className={cn("size-6", className)}
-      role="img"
-      aria-label="Manabi"
-    >
-      <defs>
-        <path id={petalId} d={PETAL} />
-        <mask id={maskId}>
-          <rect width="24" height="24" fill="black" />
-          <g fill="white">
-            {[0, 72, 144, 216, 288].map((deg) => (
-              <use
-                key={deg}
-                href={`#${petalId}`}
-                transform={`rotate(${deg} 12 12)`}
-              />
-            ))}
-          </g>
-          {/* The eye. Knocked out rather than painted, so it reads as the
-              surface behind the mark on every background. */}
-          <circle cx="12" cy="12" r="1.15" fill="black" />
-        </mask>
-      </defs>
-      <rect width="24" height="24" fill="currentColor" mask={`url(#${maskId})`} />
-    </svg>
+    <Image
+      src="/icon.png"
+      alt={label ?? ""}
+      width={192}
+      height={192}
+      priority
+      className={cn("size-6 object-contain", className)}
+    />
   );
 }
 
 /**
- * The mark set in its chip — the lockup used in the sidebar and the auth
- * dialog. The chip is opaque on purpose: a translucent chip was what made the
- * old logo illegible over the dialog's pattern.
+ * The lockup used in the sidebar and the auth dialog.
+ *
+ * No chip behind it. The artwork carries its own darker outline, so it holds
+ * its edge on the washi ground and on the dark panel without one, and a
+ * `bg-primary` chip put a pale pink flower on deep pink — the mark went muddy
+ * at the exact size it is read at.
  */
 export function ManabiLogo({
   className,
@@ -69,11 +56,11 @@ export function ManabiLogo({
   return (
     <div
       className={cn(
-        "flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-e1",
+        "flex size-10 shrink-0 items-center justify-center",
         className,
       )}
     >
-      <ManabiMark className={cn("size-6", markClassName)} />
+      <ManabiMark className={cn("size-10", markClassName)} />
     </div>
   );
 }

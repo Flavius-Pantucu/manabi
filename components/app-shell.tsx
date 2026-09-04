@@ -31,6 +31,7 @@ import type { LucideIcon } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { useLearning } from "@/lib/learning-context";
 import { AuthDialog, useAuthDialog } from "@/components/auth-dialog";
+import { createContext, useContext } from "react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useParallax } from "@/hooks/use-parallax";
@@ -125,7 +126,7 @@ function SidebarUserCard() {
   if (!user) return null;
 
   return (
-    <div className="relative rounded-xl border border-border bg-card p-3">
+    <div className="glass-inset relative rounded-xl border p-3">
       <Link href="/profile" className="flex items-center gap-3 pr-8">
         <AvatarBadge
           initials={user.avatarInitials}
@@ -204,6 +205,26 @@ export function AvatarBadge({
   );
 }
 
+/**
+ * Lets a page open the sign-in dialog the shell owns.
+ *
+ * Pages that need an account previously had no way to ask for one, so the
+ * profile page dealt with a signed-out visitor by silently redirecting them
+ * home — which reads as the page being broken rather than as "sign in first".
+ */
+interface AuthPromptValue {
+  openLogin: () => void;
+  openRegister: () => void;
+}
+
+const AuthPromptContext = createContext<AuthPromptValue | null>(null);
+
+export function useAuthPrompt(): AuthPromptValue {
+  return (
+    useContext(AuthPromptContext) ?? { openLogin: () => {}, openRegister: () => {} }
+  );
+}
+
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { theme, setTheme } = useTheme();
@@ -227,19 +248,28 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         Skip to content
       </a>
       {/* ── Ambient ground ───────────────────────────────────────────────────
-          The photograph is painted, then buried under a near-solid scrim, so
-          every surface above it composites against a known color. Previously
-          it ran at 25% with four blend-mode blobs directly behind half-
-          transparent cards, which made text contrast depend on scroll
-          position. One wash survives; the rest is scrim. */}
+          The photograph is the background of the whole app: painted at the
+          back, drifting against the scroll, then softened until it carries
+          light rather than detail. Order matters — blur and desaturate first,
+          brand wash second, graded scrim last. Everything above this stack is
+          glass, so the image reads through the UI instead of only around it.
+
+          The earlier version ran the photo at effectively 6% under a
+          near-solid scrim, which is a background nobody can see. The contrast
+          guarantee is now carried by the blur + scrim + per-surface backdrop
+          blur together, not by hiding the picture. */}
       <div
         aria-hidden="true"
         className="pointer-events-none fixed inset-0 -z-10 overflow-hidden"
       >
         <div
           ref={parallaxRef}
-          className="absolute inset-[-4%] scale-[1.06] will-change-transform"
-          style={{ opacity: "var(--ambient-photo)" }}
+          className="absolute inset-[-10%] scale-[1.14] will-change-transform"
+          style={{
+            opacity: "var(--ambient-photo)",
+            filter:
+              "blur(var(--ambient-blur)) saturate(var(--ambient-saturate))",
+          }}
         >
           <Image
             src="/images/hero-japan-4k.jpg"
@@ -252,9 +282,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
 
         {/* A single slow wash of brand light, low in the frame. */}
-        <div className="animate-drift absolute -bottom-[25%] -left-[10%] h-[70%] w-[70%] rounded-full bg-primary/25 blur-[150px]" />
+        <div className="animate-drift absolute -bottom-[25%] -left-[10%] h-[70%] w-[70%] rounded-full bg-primary/20 blur-[150px]" />
 
-        {/* The scrim. Everything above this line has predictable contrast. */}
+        {/* The scrim — graded, heavier at the edges where the header and the
+            floating nav sit. Everything above this line has predictable
+            contrast. */}
         <div
           className="absolute inset-0"
           style={{ background: "var(--ambient-scrim)" }}
@@ -269,7 +301,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* Desktop Sidebar */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-40 hidden flex-col border-r border-border bg-sidebar text-sidebar-foreground shadow-e2 md:flex",
+          "fixed inset-y-0 left-0 z-40 hidden flex-col border-r glass-panel text-sidebar-foreground shadow-e2 md:flex",
           "transition-[width,transform,opacity] duration-(--dur-4) ease-(--ease-out-expo)",
           isSidebarCollapsed
             ? "w-0 -translate-x-full opacity-0"
@@ -438,7 +470,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             isSidebarCollapsed ? "max-w-7xl" : "max-w-5xl",
           )}
         >
-          {children}
+          <AuthPromptContext.Provider value={{ openLogin, openRegister }}>
+            {children}
+          </AuthPromptContext.Provider>
         </div>
       </main>
 
@@ -460,7 +494,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             "md:pointer-events-auto md:translate-y-0 md:scale-100 md:opacity-100",
         )}
       >
-        <div className="flex min-h-14 items-center gap-1 rounded-2xl border border-border bg-popover p-1.5 shadow-e4">
+        <div className="glass-strong flex min-h-14 items-center gap-1 rounded-2xl border p-1.5">
           <button
             onClick={() => setIsSidebarCollapsed(false)}
             className="hidden rounded-xl p-2.5 text-muted-foreground transition-colors duration-(--dur-1) hover:bg-accent hover:text-accent-foreground md:flex"

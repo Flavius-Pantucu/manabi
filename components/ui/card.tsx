@@ -7,10 +7,13 @@ function Card({ className, ...props }: React.ComponentProps<'div'>) {
     <div
       data-slot="card"
       className={cn(
-        // Opaque on purpose. This was `bg-card/50 backdrop-blur-xl`, which
-        // put every card's text contrast at the mercy of whatever ambient
-        // image happened to scroll behind it.
-        'bg-card text-card-foreground flex flex-col gap-6 rounded-xl border border-border shadow-e1 py-6',
+        // Glass. The earlier `bg-card/50 backdrop-blur-xl` was reverted
+        // because it let each card's contrast ride on whatever part of the
+        // photo happened to be behind it. This one is safe for a different
+        // reason: the ambient photo is pre-blurred and scrimmed, so the
+        // backdrop under any card is already a flat field, and `.glass`
+        // blurs it again. A `bg-*` utility passed in still overrides it.
+        'glass text-card-foreground flex flex-col gap-6 rounded-xl border py-6',
         className,
       )}
       {...props}
