@@ -1,0 +1,23 @@
+{
+  "name": "Manabi — Learn Japanese",
+  "short_name": "Manabi",
+  "description": "Vocabulary, kanji, grammar, verb conjugation, reading and quizzes for learners of Japanese.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fcf8f6",
+  "theme_color": "#b33e7a",
+  "lang": "en",
+  "icons": [
+    {
+      "src": "/mark.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ]
+}
