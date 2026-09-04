@@ -121,12 +121,26 @@ export const auth = betterAuth({
     expiresIn: 30 * DAY,
     /** Sliding window: a session in daily use never expires under the learner. */
     updateAge: DAY,
-    cookieCache: {
-      // Serves the session from a signed cookie for a few minutes so that a
-      // page of five server components is not five SELECTs.
-      enabled: true,
-      maxAge: 5 * 60,
-    },
+    /**
+     * Deliberately off.
+     *
+     * The cookie cache serialises the whole user row into `session_data` —
+     * `image` included. Avatars are stored as data URLs, so an 85 KB photo
+     * became 156 KB of `Set-Cookie` split across 40 chunks, and the browser
+     * handed all of it back on the next request. Node caps request headers at
+     * 16 KB, so every request after sign-in died with 431 before Next saw it:
+     * sign-in wrote its session row, and the app could never read it.
+     *
+     * Shrinking the avatar only moves the cliff. At the 64 KB ceiling in
+     * `lib/image.ts` the cookie is still ~117 KB, and even a well-compressed
+     * 25 KB avatar clears 47 KB — all of it past the limit. Any cache that
+     * carries `user` in a cookie is one upload away from locking the learner
+     * out, so the session comes from the `session` row instead. That is one
+     * indexed SELECT, which is the cost this cache was avoiding.
+     *
+     * Re-enable only once `user.image` holds a URL rather than image bytes.
+     */
+    cookieCache: { enabled: false },
   },
 
   rateLimit: {
