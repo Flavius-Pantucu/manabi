@@ -1,0 +1,519 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MANABI DESIGN TOKENS
+
+   Palette: 桜 sakura ramp on a 和紙 washi ground.
+   Every foreground/background pair below is verified against WCAG 2.1:
+   text ≥ 4.5:1, UI boundaries and focus rings ≥ 3:1. Ratios are noted
+   inline — if you change a value, re-check the pair it belongs to.
+
+   The data hues (sakura / ai / matsuba / shu / fuji / kincha) are traditional
+   Japanese pigments. They keep the SAME hue angle across light and dark and
+   only move in lightness, so a category keeps its identity when the theme
+   flips. Do not re-map them per theme.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ── Ground & ink ─────────────────────────────────────────────────────── */
+  --background: oklch(0.981 0.005 55); /* 和紙 washi */
+  --foreground: oklch(0.215 0.018 335); /* 墨 sumi ink        16.65:1 */
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.215 0.018 335); /*                 17.61:1 */
+  --card-muted: oklch(0.975 0.006 55);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.215 0.018 335);
+
+  /* ── Sakura ramp ──────────────────────────────────────────────────────── */
+  /* Interactive sakura is deep enough to carry white text. The pale pink is
+     a FILL, never a text or button color. */
+  --primary: oklch(0.545 0.163 352); /* on white          5.43:1 */
+  --primary-foreground: oklch(1 0 0); /* on primary        5.43:1 */
+  --primary-hover: oklch(0.495 0.16 352); /* on primary-hover  6.71:1 */
+  --primary-tint: oklch(0.955 0.02 352);
+
+  --secondary: oklch(0.955 0.02 352);
+  --secondary-foreground: oklch(0.395 0.125 352); /*         8.77:1 */
+
+  --muted: oklch(0.962 0.007 55);
+  --muted-foreground: oklch(0.505 0.026 340); /* on card    5.96:1 */
+
+  /* Accent is a hover/rest TINT, not a saturated color. Loud accents make
+     ghost buttons and menu rows shout louder than the content. */
+  --accent: oklch(0.948 0.017 352);
+  --accent-foreground: oklch(0.355 0.115 352); /*          10.04:1 */
+
+  /* ── Status ───────────────────────────────────────────────────────────── */
+  --destructive: oklch(0.52 0.19 27); /* on white          6.08:1 */
+  --destructive-foreground: oklch(1 0 0); /* ON destructive    6.08:1 */
+  --success: oklch(0.5 0.095 155);
+  --success-foreground: oklch(1 0 0);
+  --warning: oklch(0.545 0.115 75);
+  --warning-foreground: oklch(1 0 0);
+  --info: oklch(0.48 0.115 252);
+  --info-foreground: oklch(1 0 0);
+
+  /* ── Lines ────────────────────────────────────────────────────────────── */
+  --border: oklch(0.85 0.008 50); /* decorative hairline  1.50:1 */
+  --border-strong: oklch(0.65 0.012 50); /* meaningful division  3.04:1 */
+  --input: oklch(0.65 0.012 50); /* control boundary     3.07:1 */
+  --ring: oklch(0.545 0.163 352); /* focus                5.13:1 */
+
+  /* ── Pigments (日本の伝統色) ─────────────────────────────────────────── */
+  --sakura: oklch(0.545 0.163 352); /* 桜   cherry      5.43:1 */
+  --ai: oklch(0.48 0.115 252); /* 藍   indigo      6.54:1 */
+  --matsuba: oklch(0.5 0.095 155); /* 松葉 pine        5.72:1 */
+  --shu: oklch(0.545 0.165 35); /* 朱   vermilion   5.36:1 */
+  --fuji: oklch(0.51 0.13 300); /* 藤   wisteria    6.08:1 */
+  --kincha: oklch(0.545 0.115 75); /* 金茶 gold-brown  5.06:1 */
+
+  --chart-1: var(--sakura);
+  --chart-2: var(--ai);
+  --chart-3: var(--matsuba);
+  --chart-4: var(--shu);
+  --chart-5: var(--fuji);
+
+  /* ── Sidebar ──────────────────────────────────────────────────────────── */
+  --sidebar: oklch(0.993 0.004 55);
+  --sidebar-foreground: oklch(0.215 0.018 335);
+  --sidebar-primary: oklch(0.545 0.163 352);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.948 0.017 352);
+  --sidebar-accent-foreground: oklch(0.355 0.115 352);
+  --sidebar-border: oklch(0.9 0.008 50);
+  --sidebar-ring: oklch(0.545 0.163 352);
+
+  /* ── Ambient photograph ───────────────────────────────────────────────── */
+  /* The photo never composites directly against content. It is painted, then
+     buried under a near-solid scrim, so every surface above it sits on a
+     KNOWN color and contrast stops depending on scroll position.
+     Effective image energy at content level = photo × (1 − scrim) ≈ 6.6%. */
+  --ambient-photo: 0.55;
+  --ambient-scrim: oklch(0.981 0.005 55 / 0.88);
+
+  /* ── Depth ────────────────────────────────────────────────────────────── */
+  /* Offset + soft blur, tinted with the ink hue. Never a zero-offset halo. */
+  --shadow-tint: 28 18 26;
+  --elev-1: 0 1px 2px -1px rgb(var(--shadow-tint) / 0.1),
+    0 1px 3px rgb(var(--shadow-tint) / 0.06);
+  --elev-2: 0 2px 4px -2px rgb(var(--shadow-tint) / 0.08),
+    0 6px 14px -3px rgb(var(--shadow-tint) / 0.08);
+  --elev-3: 0 4px 8px -4px rgb(var(--shadow-tint) / 0.1),
+    0 14px 30px -8px rgb(var(--shadow-tint) / 0.12);
+  --elev-4: 0 8px 16px -8px rgb(var(--shadow-tint) / 0.12),
+    0 28px 60px -14px rgb(var(--shadow-tint) / 0.18);
+
+  /* ── Brand panel ──────────────────────────────────────────────────────── */
+  /* A fixed surface that does NOT invert with the theme — the auth header and
+     anywhere else the brand should read identically in light and dark. Only
+     these three values may be used on it. */
+  --panel: oklch(0.215 0.018 335);
+  --panel-foreground: oklch(0.981 0.005 55); /* on panel     16.65:1 */
+  --panel-muted: oklch(0.72 0.022 340); /* on panel      7.02:1 */
+  --panel-mark: oklch(0.76 0.14 352); /* on panel      7.36:1 */
+
+
+  /* ── Chart ramp ───────────────────────────────────────────────────────── */
+  /* Maturity is an ordered progression (new → learning → young → mature), so
+     it takes a SEQUENTIAL single-hue ramp, not categorical hues. Verified
+     monotonic in lightness in both themes; segments carry a 2px surface gap
+     and direct labels, so the pale steps never have to be told apart by
+     contrast alone. */
+  --seq-1: oklch(0.9 0.055 352);
+  --seq-2: oklch(0.8 0.095 352);
+  --seq-3: oklch(0.68 0.145 352);
+  --seq-4: oklch(0.545 0.163 352);
+  /* Single-hue series for the forecast columns. */
+  --series: oklch(0.48 0.115 252);
+  --grid: oklch(0.9 0.006 55);
+
+  --radius: 0.75rem;
+
+  /* ── Motion ───────────────────────────────────────────────────────────── */
+  /* Exponential ease-out only. Real objects decelerate; they do not bounce. */
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out-quart: cubic-bezier(0.76, 0, 0.24, 1);
+  --dur-1: 120ms; /* state flip: hover, check   */
+  --dur-2: 200ms; /* element enter/exit         */
+  --dur-3: 320ms; /* surface: panel, dialog     */
+  --dur-4: 520ms; /* layout: sidebar collapse   */
+}
+
+.dark {
+  /* ── Ground & ink ─────────────────────────────────────────────────────── */
+  --background: oklch(0.171 0.014 322);
+  --foreground: oklch(0.945 0.006 55); /*                 16.27:1 */
+  --card: oklch(0.216 0.016 322);
+  --card-foreground: oklch(0.945 0.006 55); /*             14.92:1 */
+  --card-muted: oklch(0.246 0.016 322);
+  --popover: oklch(0.226 0.016 322);
+  --popover-foreground: oklch(0.945 0.006 55);
+
+  /* ── Sakura ramp ──────────────────────────────────────────────────────── */
+  /* On dark the pink LIGHTENS, so the button's own text must go to ink.
+     White-on-pink here measures 2.35:1 — that was the original bug. */
+  --primary: oklch(0.76 0.14 352); /* on card           7.66:1 */
+  --primary-foreground: oklch(0.185 0.04 352); /* ON primary   8.21:1 */
+  --primary-hover: oklch(0.815 0.112 352); /*                 10.09:1 */
+  --primary-tint: oklch(0.288 0.045 348);
+
+  --secondary: oklch(0.288 0.045 348);
+  --secondary-foreground: oklch(0.925 0.03 352); /*         11.48:1 */
+
+  --muted: oklch(0.262 0.018 322);
+  --muted-foreground: oklch(0.735 0.022 340); /* on card    7.40:1 */
+
+  --accent: oklch(0.3 0.04 348);
+  --accent-foreground: oklch(0.94 0.028 352); /*           11.52:1 */
+
+  /* ── Status ───────────────────────────────────────────────────────────── */
+  --destructive: oklch(0.64 0.19 27); /* on card           4.77:1 */
+  --destructive-foreground: oklch(0.15 0.03 27); /* ON destructive 5.37:1 */
+  --success: oklch(0.76 0.105 155);
+  --success-foreground: oklch(0.16 0.03 155);
+  --warning: oklch(0.79 0.11 75);
+  --warning-foreground: oklch(0.17 0.03 75);
+  --info: oklch(0.735 0.105 252);
+  --info-foreground: oklch(0.15 0.03 252);
+
+  /* ── Lines ────────────────────────────────────────────────────────────── */
+  --border: oklch(0.32 0.014 322); /*                      1.50:1 */
+  --border-strong: oklch(0.495 0.018 322); /*               3.06:1 */
+  --input: oklch(0.52 0.02 322); /*                       3.15:1 */
+  --ring: oklch(0.76 0.14 352); /*                      8.35:1 */
+
+  /* ── Pigments — same hue angles, lifted for the dark ground ───────────── */
+  --sakura: oklch(0.76 0.14 352); /*                7.66:1 */
+  --ai: oklch(0.735 0.105 252); /*                7.50:1 */
+  --matsuba: oklch(0.76 0.105 155); /*                8.53:1 */
+  --shu: oklch(0.75 0.135 35); /*                7.49:1 */
+  --fuji: oklch(0.75 0.115 300); /*                7.60:1 */
+  --kincha: oklch(0.79 0.11 75); /*                8.96:1 */
+
+  --chart-1: var(--sakura);
+  --chart-2: var(--ai);
+  --chart-3: var(--matsuba);
+  --chart-4: var(--shu);
+  --chart-5: var(--fuji);
+
+  /* ── Sidebar ──────────────────────────────────────────────────────────── */
+  --sidebar: oklch(0.196 0.015 322);
+  --sidebar-foreground: oklch(0.945 0.006 55);
+  --sidebar-primary: oklch(0.76 0.14 352);
+  --sidebar-primary-foreground: oklch(0.185 0.04 352);
+  --sidebar-accent: oklch(0.3 0.04 348);
+  --sidebar-accent-foreground: oklch(0.94 0.028 352);
+  --sidebar-border: oklch(0.32 0.014 322);
+  --sidebar-ring: oklch(0.76 0.14 352);
+
+  /* ── Ambient photograph ───────────────────────────────────────────────── */
+  /* A daylight photograph lifts a dark ground fast, so it is held lower here.
+     Effective ≈ 4%. */
+  --ambient-photo: 0.4;
+  --ambient-scrim: oklch(0.171 0.014 322 / 0.9);
+
+
+  /* ── Chart ramp — stepped for the dark ground, not flipped ────────────── */
+  --seq-1: oklch(0.36 0.075 352);
+  --seq-2: oklch(0.5 0.115 352);
+  --seq-3: oklch(0.63 0.135 352);
+  --seq-4: oklch(0.76 0.14 352);
+  --series: oklch(0.735 0.105 252);
+  --grid: oklch(0.3 0.012 322);
+
+  /* ── Depth ────────────────────────────────────────────────────────────── */
+  --shadow-tint: 0 0 0;
+  --elev-1: 0 1px 2px -1px rgb(var(--shadow-tint) / 0.4),
+    0 1px 3px rgb(var(--shadow-tint) / 0.3);
+  --elev-2: 0 2px 4px -2px rgb(var(--shadow-tint) / 0.35),
+    0 6px 14px -3px rgb(var(--shadow-tint) / 0.35);
+  --elev-3: 0 4px 8px -4px rgb(var(--shadow-tint) / 0.4),
+    0 14px 30px -8px rgb(var(--shadow-tint) / 0.45);
+  --elev-4: 0 8px 16px -8px rgb(var(--shadow-tint) / 0.45),
+    0 28px 60px -14px rgb(var(--shadow-tint) / 0.6);
+}
+
+@theme inline {
+  --font-sans: var(--font-inter), "Noto Sans JP", ui-sans-serif, system-ui,
+    sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, SFMono-Regular, monospace;
+  --font-jp: var(--font-noto-jp), "Noto Sans JP", sans-serif;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-card-muted: var(--card-muted);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-tint: var(--primary-tint);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-sakura: var(--sakura);
+  --color-ai: var(--ai);
+  --color-matsuba: var(--matsuba);
+  --color-shu: var(--shu);
+  --color-fuji: var(--fuji);
+  --color-kincha: var(--kincha);
+
+  --color-seq-1: var(--seq-1);
+  --color-seq-2: var(--seq-2);
+  --color-seq-3: var(--seq-3);
+  --color-seq-4: var(--seq-4);
+  --color-series: var(--series);
+  --color-grid: var(--grid);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --shadow-e1: var(--elev-1);
+  --shadow-e2: var(--elev-2);
+  --shadow-e3: var(--elev-3);
+  --shadow-e4: var(--elev-4);
+
+  --ease-quart: var(--ease-out-quart);
+  --ease-expo: var(--ease-out-expo);
+
+  --color-panel: var(--panel);
+  --color-panel-foreground: var(--panel-foreground);
+  --color-panel-muted: var(--panel-muted);
+  --color-panel-mark: var(--panel-mark);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-synthesis-weight: none;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* ── Browser surfaces ───────────────────────────────────────────────────
+     The parts we did not draw still belong to the design. Left at their
+     defaults they announce that the page was assembled, not built. */
+
+  ::selection {
+    background-color: color-mix(in oklab, var(--primary) 22%, transparent);
+    color: var(--foreground);
+  }
+
+  :root {
+    caret-color: var(--primary);
+    accent-color: var(--primary);
+    scrollbar-color: var(--border-strong) transparent;
+    scrollbar-width: thin;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background-color: var(--border-strong);
+    border: 3px solid transparent;
+    border-radius: 999px;
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: var(--muted-foreground);
+  }
+
+  /* One focus ring for the whole app, on the ink side of 3:1. */
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+  }
+
+  a {
+    text-underline-offset: 0.2em;
+    text-decoration-thickness: from-font;
+  }
+
+  /* Numbers that sit in columns or count up must not reflow as they change. */
+  [data-numeric],
+  .tabular {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   JAPANESE TYPOGRAPHY
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@layer base {
+  :lang(ja),
+  .font-jp {
+    font-family: var(--font-jp);
+    /* Japanese has no spaces; break anywhere but never split a small kana
+       or punctuation mark onto its own line. */
+    line-break: strict;
+    word-break: normal;
+    overflow-wrap: anywhere;
+  }
+
+  ruby {
+    ruby-position: over;
+    ruby-align: center;
+  }
+
+  rt {
+    /* Furigana sits close to its base and never inherits the base's weight. */
+    font-size: 0.5em;
+    font-weight: 400;
+    line-height: 1.1;
+    letter-spacing: 0.02em;
+    color: var(--muted-foreground);
+    user-select: none;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MOTION
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@keyframes drift {
+  /* One slow ambient drift for the background wash. Long distances at very
+     low frequency read as light moving, not as an element animating. */
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(2%, -3%, 0) scale(1.06);
+  }
+}
+
+.animate-drift {
+  animation: drift 38s var(--ease-in-out-quart) infinite;
+  will-change: transform;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 8px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.animate-rise {
+  animation: rise var(--dur-3) var(--ease-out-expo) both;
+}
+
+/* Reduced motion keeps the state change and drops the travel. Silence is not
+   an accessible alternative — the user still needs to see that something
+   happened, just without the movement. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .animate-drift {
+    animation: none !important;
+    transform: none !important;
+  }
+
+  /* Opacity and color still cross-fade — just fast enough to read as instant
+     while preserving the cue. */
+  [data-motion-fade] {
+    transition-property: opacity, background-color, color, border-color !important;
+    transition-duration: 80ms !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   UTILITIES
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+.preserve-3d {
+  transform-style: preserve-3d;
+}
+
+.backface-hidden {
+  backface-visibility: hidden;
+}
+
+/* Paper grain. Sits at the very back, behind every surface — it is a property
+   of the ground, not a film over the UI. (It previously rendered at z-index
+   9998, i.e. on top of modals.) */
+.grain {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.02;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .grain {
+    opacity: 0.025;
+  }
+}
