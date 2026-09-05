@@ -662,6 +662,11 @@
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
+/* The mobile bar is the topmost chrome on a phone, so it owns the notch. */
+.safe-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
 .perspective-1000 {
   perspective: 1000px;
 }

@@ -17,12 +17,14 @@ import {
   Moon,
   LogIn,
   LogOut,
+  Menu,
   PanelLeftClose,
   PanelLeftOpen,
   ShieldCheck,
   Volume2,
   Type,
   UserRound,
+  X,
   Repeat,
   Shapes,
   TrendingUp,
@@ -34,7 +36,15 @@ import { AuthDialog, useAuthDialog } from "@/components/auth-dialog";
 import { createContext, useContext } from "react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { useParallax } from "@/hooks/use-parallax";
+import { useIsMobile } from "@/hooks/use-mobile";
 import Image from "next/image";
 import { CommandMenu } from "@/components/command-menu";
 import { ManabiLogo } from "@/components/manabi-mark";
@@ -72,14 +82,21 @@ const navItems: NavItem[] = [
   },
 ];
 
-interface MobileNavItem {
+/**
+ * The shortlist carried by the desktop pill while the sidebar is collapsed.
+ *
+ * This was the mobile navigation too, until mobile got the drawer below. It is
+ * a shortlist rather than the full `navItems` because the pill is a stopgap
+ * for a hidden sidebar, not a replacement for it.
+ */
+interface QuickNavItem {
   href: string;
   label: string;
   icon: LucideIcon;
   adminOnly?: boolean;
 }
 
-const mobileNavItems: MobileNavItem[] = [
+const quickNavItems: QuickNavItem[] = [
   { href: "/", label: "Home", icon: LayoutDashboard },
   { href: "/review", label: "Review", icon: Repeat },
   { href: "/kana", label: "Kana", icon: Shapes },
@@ -121,13 +138,17 @@ function SidebarAuthButtons({
 }
 
 // Sidebar auth section — logged in
-function SidebarUserCard() {
+function SidebarUserCard({ onNavigate }: { onNavigate?: () => void }) {
   const { user, logout } = useAuth();
   if (!user) return null;
 
   return (
     <div className="glass-inset relative rounded-xl border p-3">
-      <Link href="/profile" className="flex items-center gap-3 pr-8">
+      <Link
+        href="/profile"
+        onClick={onNavigate}
+        className="flex items-center gap-3 pr-8"
+      >
         <AvatarBadge
           initials={user.avatarInitials}
           avatarUrl={user.avatarUrl}
@@ -225,6 +246,157 @@ export function useAuthPrompt(): AuthPromptValue {
   );
 }
 
+/**
+ * Everything below the sidebar's header: the study links, the account card,
+ * the theme switch and the study preferences.
+ *
+ * Rendered twice — once in the desktop rail, once in the mobile drawer — so
+ * the two cannot drift apart. Only one is ever in the accessibility tree,
+ * since whichever does not apply to the viewport is `display: none`.
+ *
+ * `onNavigate` exists for the drawer. Route changes close it on their own, but
+ * tapping the link for the page you are already on does not change the route,
+ * and a drawer that ignores a tap reads as broken.
+ */
+function SidebarBody({
+  onNavigate,
+  onLogin,
+  onRegister,
+}: {
+  onNavigate?: () => void;
+  onLogin: () => void;
+  onRegister: () => void;
+}) {
+  const pathname = usePathname();
+  const { theme, setTheme } = useTheme();
+  const { user, isLoading } = useAuth();
+  const { showFurigana, autoPlayAudio, toggleFurigana, toggleAutoPlay } =
+    useLearning();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  return (
+    <>
+      <nav aria-label="Study areas" className="flex-1 overflow-y-auto px-3 py-4">
+        <ul className="flex flex-col gap-1">
+          {navItems.map((item) => {
+            if (item.adminOnly && user?.role !== "admin") return null;
+            const isActive = pathname === item.href;
+            return (
+              <li key={item.href}>
+                <Link
+                  href={item.href}
+                  onClick={onNavigate}
+                  aria-current={isActive ? "page" : undefined}
+                  className={cn(
+                    "group relative flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium",
+                    "transition-colors duration-(--dur-1)",
+                    isActive
+                      ? "bg-primary-tint text-secondary-foreground"
+                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+                  )}
+                >
+                  {isActive && (
+                    <span
+                      aria-hidden="true"
+                      className="absolute left-0 h-5 w-[3px] rounded-r-full bg-primary"
+                    />
+                  )}
+                  <item.icon
+                    className={cn(
+                      "size-5 shrink-0",
+                      isActive ? "text-primary" : "text-muted-foreground",
+                    )}
+                  />
+                  <span>{item.label}</span>
+                  {/* Japanese label is a lexical aid, not decoration — it
+                      gets a real language tag so screen readers switch
+                      voice instead of spelling it out in English. */}
+                  <span
+                    lang="ja"
+                    className={cn(
+                      "ml-auto font-jp text-xs",
+                      isActive
+                        ? "text-secondary-foreground"
+                        : "text-muted-foreground",
+                    )}
+                  >
+                    {item.labelJp}
+                  </span>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      </nav>
+
+      {/* Bottom section */}
+      <div className="flex flex-col gap-2 border-t border-border px-3 py-3">
+        {!isLoading &&
+          (user ? (
+            <SidebarUserCard onNavigate={onNavigate} />
+          ) : (
+            <SidebarAuthButtons onLogin={onLogin} onRegister={onRegister} />
+          ))}
+
+        <button
+          onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+          className="flex min-h-11 w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors duration-(--dur-1) hover:bg-accent hover:text-accent-foreground"
+        >
+          {mounted ? (
+            theme === "dark" ? (
+              <Sun className="size-5" />
+            ) : (
+              <Moon className="size-5" />
+            )
+          ) : (
+            <span className="size-5" />
+          )}
+          {/* Rendered before hydration as an empty string would collapse the
+              row; reserve the label's line instead. */}
+          <span>
+            {mounted ? (theme === "dark" ? "Light mode" : "Dark mode") : " "}
+          </span>
+        </button>
+
+        <div className="mt-1 flex flex-col gap-3 border-t border-border px-3 pt-4">
+          <h2 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Study preferences
+          </h2>
+          <div className="flex items-center justify-between gap-3">
+            <Label
+              htmlFor={`furigana-toggle-${onNavigate ? "drawer" : "rail"}`}
+              className="flex cursor-pointer items-center gap-2 text-xs font-medium text-foreground"
+            >
+              <Type className="size-4 text-muted-foreground" />
+              Furigana
+            </Label>
+            <Switch
+              id={`furigana-toggle-${onNavigate ? "drawer" : "rail"}`}
+              checked={mounted ? showFurigana : true}
+              onCheckedChange={toggleFurigana}
+            />
+          </div>
+          <div className="flex items-center justify-between gap-3">
+            <Label
+              htmlFor={`autoplay-toggle-${onNavigate ? "drawer" : "rail"}`}
+              className="flex cursor-pointer items-center gap-2 text-xs font-medium text-foreground"
+            >
+              <Volume2 className="size-4 text-muted-foreground" />
+              Auto-play audio
+            </Label>
+            <Switch
+              id={`autoplay-toggle-${onNavigate ? "drawer" : "rail"}`}
+              checked={mounted ? autoPlayAudio : false}
+              onCheckedChange={toggleAutoPlay}
+            />
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { theme, setTheme } = useTheme();
@@ -234,9 +406,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { open, defaultTab, openLogin, openRegister, setOpen } =
     useAuthDialog();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   const parallaxRef = useParallax();
+  const isMobile = useIsMobile();
+
+  // Navigating is the drawer's whole purpose, so arriving somewhere closes it.
+  useEffect(() => setIsDrawerOpen(false), [pathname]);
+
+  // A drawer left open across a resize would sit over the desktop rail it
+  // duplicates. Rotating a tablet is enough to hit this.
+  useEffect(() => {
+    if (!isMobile) setIsDrawerOpen(false);
+  }, [isMobile]);
 
   return (
     <div className="relative flex min-h-dvh flex-col">
@@ -298,6 +481,120 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           top of open dialogs.) */}
       <div aria-hidden="true" className="grain -z-10" />
 
+      {/* ── Mobile chrome ────────────────────────────────────────────────────
+          A bar that stays put and a drawer holding the same navigation the
+          desktop rail does, in place of the floating pill that used to carry
+          a five-item subset of it.
+
+          Built on the Sheet primitive rather than a hand-rolled panel: it is
+          Radix Dialog underneath, so focus moves into the drawer and returns
+          to this button on close, Escape works, the page behind cannot be
+          tabbed into, and background scroll is locked. Those are the parts of
+          a drawer that are easy to leave out and obvious when missing. */}
+      <Sheet open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
+        <header className="safe-top sticky top-0 z-30 flex items-center gap-1 border-b glass-panel px-3 py-2 md:hidden">
+          <SheetTrigger asChild>
+            <button
+              className="flex size-11 items-center justify-center rounded-xl text-foreground transition-colors duration-(--dur-1) hover:bg-accent hover:text-accent-foreground"
+              aria-label="Open navigation"
+            >
+              <Menu className="size-5" />
+            </button>
+          </SheetTrigger>
+
+          <Link
+            href="/"
+            className="flex items-center gap-2.5 rounded-lg px-1"
+            aria-label="Manabi home"
+          >
+            <ManabiLogo />
+            <span className="text-base font-semibold leading-none text-foreground">
+              Manabi
+            </span>
+          </Link>
+
+          {/* The account lives here rather than in the drawer alone, so
+              signing in never costs two taps. */}
+          <div className="ml-auto">
+            {!isLoading &&
+              (user ? (
+                <Link
+                  href="/profile"
+                  className="flex size-11 items-center justify-center rounded-xl transition-colors duration-(--dur-1) hover:bg-accent"
+                >
+                  <AvatarBadge
+                    initials={user.avatarInitials}
+                    avatarUrl={user.avatarUrl}
+                    size="sm"
+                    className="size-8"
+                  />
+                  <span className="sr-only">Your profile</span>
+                </Link>
+              ) : (
+                <button
+                  onClick={openLogin}
+                  className="flex min-h-10 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-foreground transition-colors duration-(--dur-1) hover:bg-accent hover:text-accent-foreground"
+                >
+                  <LogIn className="size-4" />
+                  Log in
+                </button>
+              ))}
+          </div>
+        </header>
+
+        <SheetContent
+          side="left"
+          // `aria-describedby={undefined}`: Radix warns when a dialog has no
+          // description, and a navigation drawer has nothing to say that its
+          // own links do not.
+          aria-describedby={undefined}
+          // `safe-bottom` so the last preference toggle clears the home
+          // indicator — the drawer runs the full height of a viewport the
+          // layout opts into with `viewportFit: "cover"`.
+          //
+          // The last-child rule hides Sheet's own close button. It is a 16px
+          // icon pinned to the corner, which is under half the 44px a thumb
+          // needs; the one in the header below replaces it and, being in
+          // flow, sits under the notch rather than behind it.
+          className="safe-bottom glass-panel flex w-[min(20rem,86vw)] flex-col gap-0 border-r p-0 text-sidebar-foreground sm:max-w-none [&>button:last-child]:hidden"
+        >
+          <div className="safe-top flex items-center gap-3 border-b border-border px-5 py-4">
+            <SheetTitle asChild>
+              <Link
+                href="/"
+                onClick={() => setIsDrawerOpen(false)}
+                className="flex items-center gap-3 rounded-lg"
+              >
+                <ManabiLogo />
+                <span>
+                  <span className="block text-base font-semibold leading-tight text-foreground">
+                    Manabi
+                  </span>
+                  <span className="block text-xs font-normal text-muted-foreground">
+                    学び
+                  </span>
+                </span>
+              </Link>
+            </SheetTitle>
+
+            <SheetClose asChild>
+              <button
+                className="-mr-2 ml-auto flex size-11 shrink-0 items-center justify-center rounded-xl text-muted-foreground transition-colors duration-(--dur-1) hover:bg-accent hover:text-accent-foreground"
+                aria-label="Close navigation"
+              >
+                <X className="size-5" />
+              </button>
+            </SheetClose>
+          </div>
+
+          <SidebarBody
+            onNavigate={() => setIsDrawerOpen(false)}
+            onLogin={openLogin}
+            onRegister={openRegister}
+          />
+        </SheetContent>
+      </Sheet>
+
       {/* Desktop Sidebar */}
       <aside
         className={cn(
@@ -331,135 +628,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <PanelLeftClose className="size-5" />
           </button>
         </div>
-        <nav aria-label="Study areas" className="flex-1 overflow-y-auto px-3 py-4">
-          <ul className="flex flex-col gap-1">
-            {navItems.map((item) => {
-              if (item.adminOnly && user?.role !== "admin") return null;
-              const isActive = pathname === item.href;
-              return (
-                <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    aria-current={isActive ? "page" : undefined}
-                    className={cn(
-                      "group relative flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium",
-                      "transition-colors duration-(--dur-1)",
-                      isActive
-                        ? "bg-primary-tint text-secondary-foreground"
-                        : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
-                    )}
-                  >
-                    {isActive && (
-                      <span
-                        aria-hidden="true"
-                        className="absolute left-0 h-5 w-[3px] rounded-r-full bg-primary"
-                      />
-                    )}
-                    <item.icon
-                      className={cn(
-                        "size-5 shrink-0",
-                        isActive ? "text-primary" : "text-muted-foreground",
-                      )}
-                    />
-                    <span>{item.label}</span>
-                    {/* Japanese label is a lexical aid, not decoration — it
-                        gets a real language tag so screen readers switch
-                        voice instead of spelling it out in English. */}
-                    <span
-                      lang="ja"
-                      className={cn(
-                        "ml-auto font-jp text-xs",
-                        isActive
-                          ? "text-secondary-foreground"
-                          : "text-muted-foreground",
-                      )}
-                    >
-                      {item.labelJp}
-                    </span>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        </nav>
-
-        {/* Bottom section */}
-        <div className="flex flex-col gap-2 border-t border-border px-3 py-3">
-          {!isLoading &&
-            (user ? (
-              <SidebarUserCard />
-            ) : (
-              <SidebarAuthButtons
-                onLogin={openLogin}
-                onRegister={openRegister}
-              />
-            ))}
-
-          <button
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            className="flex min-h-11 w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors duration-(--dur-1) hover:bg-accent hover:text-accent-foreground"
-          >
-            {mounted ? (
-              theme === "dark" ? (
-                <Sun className="size-5" />
-              ) : (
-                <Moon className="size-5" />
-              )
-            ) : (
-              <span className="size-5" />
-            )}
-            {/* Rendered before hydration as an empty string would collapse the
-                row; reserve the label's line instead. */}
-            <span>
-              {mounted
-                ? theme === "dark"
-                  ? "Light mode"
-                  : "Dark mode"
-                : " "}
-            </span>
-          </button>
-
-          <div className="mt-1 flex flex-col gap-3 border-t border-border px-3 pt-4">
-            <h2 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-              Study preferences
-            </h2>
-            <div className="flex items-center justify-between gap-3">
-              <Label
-                htmlFor="furigana-toggle"
-                className="flex cursor-pointer items-center gap-2 text-xs font-medium text-foreground"
-              >
-                <Type className="size-4 text-muted-foreground" />
-                Furigana
-              </Label>
-              <Switch
-                id="furigana-toggle"
-                checked={mounted ? showFurigana : true}
-                onCheckedChange={toggleFurigana}
-              />
-            </div>
-            <div className="flex items-center justify-between gap-3">
-              <Label
-                htmlFor="autoplay-toggle"
-                className="flex cursor-pointer items-center gap-2 text-xs font-medium text-foreground"
-              >
-                <Volume2 className="size-4 text-muted-foreground" />
-                Auto-play audio
-              </Label>
-              <Switch
-                id="autoplay-toggle"
-                checked={mounted ? autoPlayAudio : false}
-                onCheckedChange={toggleAutoPlay}
-              />
-            </div>
-          </div>
-        </div>
+        <SidebarBody onLogin={openLogin} onRegister={openRegister} />
       </aside>
 
       {/* Main Content */}
       <main
         id="main"
         className={cn(
-          "relative z-10 flex-1 pb-28 md:pb-0",
+          // The old `pb-28` reserved a landing strip for the floating pill.
+          // Nothing hovers over the bottom of the page on mobile now, so the
+          // content runs to the safe area instead of stopping short of it.
+          "safe-bottom relative z-10 flex-1",
           "transition-[padding] duration-(--dur-4) ease-(--ease-out-expo)",
           isSidebarCollapsed ? "md:pl-0" : "md:pl-64",
         )}
@@ -482,17 +661,21 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* Global Command Menu (⌘K) */}
       <CommandMenu />
 
-      {/* Floating nav bar — primary navigation on mobile, and the way back to
-          an expanded sidebar on desktop. */}
+      {/* Floating pill — desktop only, and only while the rail is collapsed.
+          It is what puts the sidebar back, plus a shortlist of destinations so
+          a collapsed rail is not a dead end. Mobile used to share it; mobile
+          now has the drawer above, which carries the whole nav rather than
+          five of it. */}
       <nav
         aria-label="Primary"
         className={cn(
-          "safe-bottom fixed bottom-6 left-1/2 z-50 -translate-x-1/2",
+          "safe-bottom fixed bottom-6 left-1/2 z-50 hidden -translate-x-1/2 md:block",
           "transition-[opacity,transform] duration-(--dur-3) ease-(--ease-out-expo)",
-          "translate-y-0 scale-100 opacity-100 md:pointer-events-none md:translate-y-6 md:scale-95 md:opacity-0",
+          "pointer-events-none translate-y-6 scale-95 opacity-0",
           isSidebarCollapsed &&
-            "md:pointer-events-auto md:translate-y-0 md:scale-100 md:opacity-100",
+            "pointer-events-auto translate-y-0 scale-100 opacity-100",
         )}
+        inert={!isSidebarCollapsed || undefined}
       >
         <div className="glass-strong flex min-h-14 items-center gap-1 rounded-2xl border p-1.5">
           <button
@@ -508,7 +691,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             className="mx-1 hidden h-6 w-px bg-border md:block"
           />
 
-          {mobileNavItems.map((item) => {
+          {quickNavItems.map((item) => {
             if (item.adminOnly && user?.role !== "admin") return null;
             const isActive = pathname === item.href;
             return (
