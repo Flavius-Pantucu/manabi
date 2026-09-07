@@ -11,9 +11,10 @@
 import { createAuthClient } from "better-auth/react";
 import { inferAdditionalFields } from "better-auth/client/plugins";
 import type { auth } from "./index";
+import { clientBaseUrl } from "./base-url";
 
 export const authClient = createAuthClient({
-  baseURL: process.env.NEXT_PUBLIC_APP_URL,
+  baseURL: clientBaseUrl(),
   plugins: [inferAdditionalFields<typeof auth>()],
 });
 

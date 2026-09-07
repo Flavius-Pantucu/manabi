@@ -20,12 +20,13 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
 import { db, schema } from "@/lib/db";
 import { resetPasswordEmail, sendEmail } from "./email";
+import { serverBaseUrl } from "./base-url";
 
 const DAY = 60 * 60 * 24;
 
 export const auth = betterAuth({
   appName: "Manabi",
-  baseURL: process.env.BETTER_AUTH_URL ?? process.env.NEXT_PUBLIC_APP_URL,
+  baseURL: serverBaseUrl(),
   secret: process.env.BETTER_AUTH_SECRET,
 
   database: drizzleAdapter(db, {
