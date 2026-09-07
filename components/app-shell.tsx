@@ -205,8 +205,17 @@ export function AvatarBadge({
       )}
     >
       {avatarUrl ? (
-        <div className="size-full bg-card">
-          <img src={avatarUrl} alt="" className="size-full object-cover p-1" />
+        // `p-1` insets the photo to leave a card-coloured ring, which put the
+        // image's square corners *inside* the parent's circular clip — so the
+        // clip never touched them and the avatar rendered square. Both layers
+        // inherit the badge's radius instead, which keeps the ring circular
+        // here and squircular where a caller overrides the shape.
+        <div className="size-full rounded-[inherit] bg-card p-1">
+          <img
+            src={avatarUrl}
+            alt=""
+            className="size-full rounded-[inherit] object-cover"
+          />
         </div>
       ) : (
         <span aria-hidden="true">{initials}</span>
@@ -492,7 +501,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           tabbed into, and background scroll is locked. Those are the parts of
           a drawer that are easy to leave out and obvious when missing. */}
       <Sheet open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
-        <header className="safe-top sticky top-0 z-30 flex items-center gap-1 border-b glass-panel px-3 py-2 md:hidden">
+        <header className="safe-top [--safe-top-pad:0.5rem] sticky top-0 z-30 flex items-center gap-1 border-b glass-panel px-3 pb-2 md:hidden">
           <SheetTrigger asChild>
             <button
               className="flex size-11 items-center justify-center rounded-xl text-foreground transition-colors duration-(--dur-1) hover:bg-accent hover:text-accent-foreground"
@@ -507,8 +516,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             className="flex items-center gap-2.5 rounded-lg px-1"
             aria-label="Manabi home"
           >
-            <ManabiLogo />
-            <span className="text-base font-semibold leading-none text-foreground">
+            <ManabiLogo className="size-8" markClassName="size-8" />
+            {/* Shippori's ascent/descent (1.16/0.288 em) are lopsided, so
+                `leading-none` centres the text box while the glyphs themselves
+                sit ~0.08em low next to the geometrically centred mark. */}
+            <span className="font-brand -translate-y-[0.08em] text-lg font-medium leading-none text-foreground">
               Manabi
             </span>
           </Link>
@@ -520,13 +532,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               (user ? (
                 <Link
                   href="/profile"
-                  className="flex size-11 items-center justify-center rounded-xl transition-colors duration-(--dur-1) hover:bg-accent"
+                  className="flex size-11 items-center justify-center rounded-full transition-colors duration-(--dur-1) hover:bg-accent"
                 >
                   <AvatarBadge
                     initials={user.avatarInitials}
                     avatarUrl={user.avatarUrl}
                     size="sm"
-                    className="size-8"
+                    className="size-8 rounded-full"
                   />
                   <span className="sr-only">Your profile</span>
                 </Link>
@@ -558,7 +570,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           // flow, sits under the notch rather than behind it.
           className="safe-bottom glass-panel flex w-[min(20rem,86vw)] flex-col gap-0 border-r p-0 text-sidebar-foreground sm:max-w-none [&>button:last-child]:hidden"
         >
-          <div className="safe-top flex items-center gap-3 border-b border-border px-5 py-4">
+          <div className="safe-top [--safe-top-pad:1rem] flex items-center gap-3 border-b border-border px-5 pb-4">
             <SheetTitle asChild>
               <Link
                 href="/"
@@ -567,7 +579,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               >
                 <ManabiLogo />
                 <span>
-                  <span className="block text-base font-semibold leading-tight text-foreground">
+                  <span className="block font-brand text-lg font-medium leading-tight text-foreground">
                     Manabi
                   </span>
                   <span className="block text-xs font-normal text-muted-foreground">
@@ -614,7 +626,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           >
             <ManabiLogo />
             <span>
-              <span className="block text-base font-semibold leading-tight text-foreground">
+              <span className="block font-brand text-lg font-medium leading-tight text-foreground">
                 Manabi
               </span>
               <span className="block text-xs text-muted-foreground">学び</span>

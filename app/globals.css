@@ -334,6 +334,9 @@
     sans-serif;
   --font-mono: "Geist Mono", ui-monospace, SFMono-Regular, monospace;
   --font-jp: var(--font-noto-jp), "Noto Sans JP", sans-serif;
+  /* Wordmark only — never body copy. Mincho at text sizes is thin. */
+  --font-brand: var(--font-shippori), "Hiragino Mincho ProN", "Yu Mincho",
+    serif;
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -662,9 +665,15 @@
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
-/* The mobile bar is the topmost chrome on a phone, so it owns the notch. */
+/* The mobile bar is the topmost chrome on a phone, so it owns the notch.
+   
+   The inset is ADDED to the padding the element already wants, via
+   `--safe-top-pad`. This was a bare `padding-top`, and because the rule is
+   unlayered it outranked Tailwind's `utilities` layer and quietly replaced
+   `py-*` on both bars using it — their top padding resolved to 0 on every
+   viewport without a notch, so the row sat high in the bar. */
 .safe-top {
-  padding-top: env(safe-area-inset-top, 0px);
+  padding-top: calc(env(safe-area-inset-top, 0px) + var(--safe-top-pad, 0px));
 }
 
 .perspective-1000 {

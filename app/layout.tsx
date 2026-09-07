@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Noto_Sans_JP } from "next/font/google";
+import { Inter, Noto_Sans_JP, Shippori_Mincho } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AppShell } from "@/components/app-shell";
@@ -16,6 +16,14 @@ const _notoJp = Noto_Sans_JP({
   subsets: ["latin"],
   variable: "--font-noto-jp",
   weight: ["400", "500", "700"],
+});
+// The wordmark face. A mincho — the Japanese equivalent of a serif — whose
+// Latin glyphs carry the same brush-cut terminals as its kana, so "Manabi"
+// reads as Japanese typography rather than as Inter next to a sakura.
+const _shippori = Shippori_Mincho({
+  subsets: ["latin"],
+  variable: "--font-shippori",
+  weight: ["500", "600"],
 });
 
 export const metadata: Metadata = {
@@ -55,7 +63,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="bg-background" suppressHydrationWarning>
       <body
-        className={`${_inter.variable} ${_notoJp.variable} font-sans antialiased`}
+        className={`${_inter.variable} ${_notoJp.variable} ${_shippori.variable} font-sans antialiased`}
       >
         <ReduxProvider>
           <ThemeProvider
