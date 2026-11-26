@@ -27,10 +27,17 @@ const _shippori = Shippori_Mincho({
   weight: ["500", "600"],
 });
 
+const rawAppUrl =
+  process.env.NEXT_PUBLIC_APP_URL ??
+  process.env.VERCEL_PROJECT_PRODUCTION_URL ??
+  process.env.VERCEL_URL ??
+  "https://manabi.app";
+const appUrl = rawAppUrl.startsWith("http")
+  ? rawAppUrl
+  : `https://${rawAppUrl}`;
+
 export const metadata: Metadata = {
-  metadataBase: new URL(
-    process.env.NEXT_PUBLIC_APP_URL ?? "https://manabi.app",
-  ),
+  metadataBase: new URL(appUrl),
   title: {
     default: "Manabi — Language Learning Platform",
     template: "%s | Manabi",
