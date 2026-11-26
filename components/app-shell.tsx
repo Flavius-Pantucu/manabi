@@ -418,10 +418,43 @@ function SidebarBody({
   );
 }
 
+function LanguageSelect({ align = "end" }: { align?: "start" | "end" }) {
+  const { language, setLanguage } = useLanguage();
+  return (
+    <Select
+      value={language}
+      onValueChange={(v) => setLanguage(v as Language)}
+    >
+      <SelectTrigger
+        aria-label="Select learning language"
+        className="w-auto gap-1 border-0 bg-transparent px-2 py-0 shadow-none ring-0 hover:bg-accent focus-visible:ring-0 data-[size=default]:h-10 dark:bg-transparent dark:hover:bg-accent"
+      >
+        <span className="text-lg leading-none" aria-hidden="true">
+          {language === "es" ? "🇪🇸" : language === "fr" ? "🇫🇷" : "🇯🇵"}
+        </span>
+      </SelectTrigger>
+      <SelectContent align={align}>
+        <SelectItem value="es">
+          <span aria-hidden="true">🇪🇸</span>
+          Spanish
+        </SelectItem>
+        <SelectItem value="fr">
+          <span aria-hidden="true">🇫🇷</span>
+          French
+        </SelectItem>
+        <SelectItem value="ja">
+          <span aria-hidden="true">🇯🇵</span>
+          Japanese
+        </SelectItem>
+      </SelectContent>
+    </Select>
+  );
+}
+
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { user, isLoading } = useAuth();
-  const { language, setLanguage } = useLanguage();
+  const { language } = useLanguage();
   const { open, defaultTab, openLogin, openRegister, setOpen } =
     useAuthDialog();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -544,13 +577,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               Manabi
             </span>
           </Link>
-          <button
-            onClick={() => setIsSidebarCollapsed(true)}
-            className="rounded-lg p-1.5 text-muted-foreground transition-colors duration-(--dur-1) hover:bg-accent hover:text-accent-foreground"
-            aria-label="Collapse sidebar"
-          >
-            <PanelLeftClose className="size-5" />
-          </button>
+          <div className="flex items-center gap-1">
+            <LanguageSelect align="end" />
+            <button
+              onClick={() => setIsSidebarCollapsed(true)}
+              className="rounded-lg p-1.5 text-muted-foreground transition-colors duration-(--dur-1) hover:bg-accent hover:text-accent-foreground"
+              aria-label="Collapse sidebar"
+            >
+              <PanelLeftClose className="size-5" />
+            </button>
+          </div>
         </div>
         <SidebarBody onLogin={openLogin} onRegister={openRegister} />
       </aside>
@@ -564,8 +600,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           isSidebarCollapsed ? "md:pl-0" : "md:pl-64",
         )}
       >
-        {/* Unified Top Navbar Header (Mobile + Desktop) */}
-        <header className="safe-top [--safe-top-pad:0.5rem] sticky top-0 z-30 flex items-center justify-between border-b glass-panel px-3 pb-2 md:px-6 md:py-2">
+        {/* Top Navbar Header — always on mobile, and on desktop when sidebar is collapsed */}
+        <header
+          className={cn(
+            "safe-top [--safe-top-pad:0.5rem] sticky top-0 z-30 flex items-center justify-between border-b glass-panel px-3 pb-2 md:px-6 md:py-2",
+            !isSidebarCollapsed && "md:hidden",
+          )}
+        >
           <div className="flex items-center gap-1">
             <SheetTrigger asChild>
               <button
@@ -600,33 +641,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </Link>
 
           <div className="ml-auto flex items-center gap-1">
-            <Select
-              value={language}
-              onValueChange={(v) => setLanguage(v as Language)}
-            >
-              <SelectTrigger
-                aria-label="Select learning language"
-                className="w-auto gap-1 border-0 bg-transparent px-2 py-0 shadow-none ring-0 hover:bg-accent focus-visible:ring-0 data-[size=default]:h-10 dark:bg-transparent dark:hover:bg-accent"
-              >
-                <span className="text-lg leading-none" aria-hidden="true">
-                  {language === "es" ? "🇪🇸" : language === "fr" ? "🇫🇷" : "🇯🇵"}
-                </span>
-              </SelectTrigger>
-              <SelectContent align="end">
-                <SelectItem value="es">
-                  <span aria-hidden="true">🇪🇸</span>
-                  Spanish
-                </SelectItem>
-                <SelectItem value="fr">
-                  <span aria-hidden="true">🇫🇷</span>
-                  French
-                </SelectItem>
-                <SelectItem value="ja">
-                  <span aria-hidden="true">🇯🇵</span>
-                  Japanese
-                </SelectItem>
-              </SelectContent>
-            </Select>
+            <LanguageSelect align="end" />
 
             {!isLoading &&
               (user ? (
