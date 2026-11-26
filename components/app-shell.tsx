@@ -730,7 +730,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             : "pointer-events-auto translate-y-0 scale-100 opacity-100 md:pointer-events-none md:translate-y-6 md:scale-95 md:opacity-0",
         )}
       >
-        <div className="glass-strong flex w-full items-center justify-around gap-0.5 rounded-none border-0 px-2 pb-12 pt-1.5 md:w-auto md:justify-center md:gap-1 md:rounded-2xl md:border md:p-1.5">
+        <div className="glass-strong flex w-full items-center justify-around gap-0.5 rounded-none border-0 px-2 pb-6 pt-1.5 md:w-auto md:justify-center md:gap-1 md:rounded-2xl md:border md:p-1.5">
           <button
             onClick={() => setIsSidebarCollapsed(false)}
             className="hidden min-w-13 flex-col items-center justify-center gap-1 rounded-xl px-2.5 py-1.5 text-muted-foreground transition-colors duration-(--dur-1) hover:bg-accent hover:text-accent-foreground md:flex"
