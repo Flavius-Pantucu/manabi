@@ -475,81 +475,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           tabbed into, and background scroll is locked. Those are the parts of
           a drawer that are easy to leave out and obvious when missing. */}
       <Sheet open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
-        <header className="safe-top [--safe-top-pad:0.5rem] sticky top-0 z-30 flex items-center justify-between border-b glass-panel px-3 pb-2 md:hidden">
-          <SheetTrigger asChild>
-            <button
-              className="flex size-10 items-center justify-center rounded-xl text-foreground transition-colors duration-(--dur-1) hover:bg-accent hover:text-accent-foreground"
-              aria-label="Open navigation"
-            >
-              <Menu className="size-5" />
-            </button>
-          </SheetTrigger>
-
-          <Link
-            href="/"
-            className="absolute left-1/2 -translate-x-1/2 flex items-center justify-center rounded-lg p-1"
-            aria-label="Manabi home"
-          >
-            <ManabiLogo className="size-8" markClassName="size-8" />
-          </Link>
-
-          {/* Language switcher + account live here rather than in the drawer alone. */}
-          <div className="ml-auto flex items-center gap-1">
-            <Select
-              value={language}
-              onValueChange={(v) => setLanguage(v as Language)}
-            >
-              <SelectTrigger
-                aria-label="Select learning language"
-                className="w-auto gap-1 border-0 bg-transparent px-2 py-0 shadow-none ring-0 hover:bg-accent focus-visible:ring-0 data-[size=default]:h-10 dark:bg-transparent dark:hover:bg-accent"
-              >
-                <span className="text-lg leading-none" aria-hidden="true">
-                  {language === "es" ? "🇪🇸" : language === "fr" ? "🇫🇷" : "🇯🇵"}
-                </span>
-              </SelectTrigger>
-              <SelectContent align="end">
-                <SelectItem value="es">
-                  <span aria-hidden="true">🇪🇸</span>
-                  Spanish
-                </SelectItem>
-                <SelectItem value="fr">
-                  <span aria-hidden="true">🇫🇷</span>
-                  French
-                </SelectItem>
-                <SelectItem value="ja">
-                  <span aria-hidden="true">🇯🇵</span>
-                  Japanese
-                </SelectItem>
-              </SelectContent>
-            </Select>
-
-            {!isLoading &&
-              (user ? (
-                <Link
-                  href="/profile"
-                  className="flex size-11 items-center justify-center rounded-full transition-colors duration-(--dur-1) hover:bg-accent"
-                >
-                  <AvatarBadge
-                    initials={user.avatarInitials}
-                    avatarUrl={user.avatarUrl}
-                    size="sm"
-                    className="size-8 rounded-full"
-                  />
-                  <span className="sr-only">Your profile</span>
-                </Link>
-              ) : (
-                <button
-                  onClick={openLogin}
-                  aria-label="Log in"
-                  className="flex size-10 items-center justify-center rounded-xl text-foreground transition-colors duration-(--dur-1) hover:bg-accent hover:text-accent-foreground"
-                >
-                  <UserRound className="size-5" />
-                  <span className="sr-only">Log in</span>
-                </button>
-              ))}
-          </div>
-        </header>
-
         <SheetContent
           side="left"
           // `aria-describedby={undefined}`: Radix warns when a dialog has no
@@ -596,7 +521,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             onRegister={openRegister}
           />
         </SheetContent>
-      </Sheet>
 
       {/* Desktop Sidebar */}
       <aside
@@ -640,103 +564,107 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           isSidebarCollapsed ? "md:pl-0" : "md:pl-64",
         )}
       >
-        {/* Top Navbar — Desktop Flag Switcher + Centered Logo when sidebar is collapsed */}
-        <div className="hidden border-b border-border/80 bg-background/85 backdrop-blur-md md:sticky md:top-0 md:z-20 md:block">
-          <div
+        {/* Unified Top Navbar Header (Mobile + Desktop) */}
+        <header className="safe-top [--safe-top-pad:0.5rem] sticky top-0 z-30 flex items-center justify-between border-b glass-panel px-3 pb-2 md:px-6 md:py-2">
+          <div className="flex items-center gap-1">
+            <SheetTrigger asChild>
+              <button
+                className="flex size-10 items-center justify-center rounded-xl text-foreground transition-colors duration-(--dur-1) hover:bg-accent hover:text-accent-foreground md:hidden"
+                aria-label="Open navigation"
+              >
+                <Menu className="size-5" />
+              </button>
+            </SheetTrigger>
+
+            {isSidebarCollapsed && (
+              <button
+                onClick={() => setIsSidebarCollapsed(false)}
+                className="hidden size-10 items-center justify-center rounded-xl text-muted-foreground transition-colors duration-(--dur-1) hover:bg-accent hover:text-accent-foreground md:flex"
+                aria-label="Expand sidebar"
+              >
+                <PanelLeftOpen className="size-5" />
+              </button>
+            )}
+          </div>
+
+          <Link
+            href="/"
+            aria-label="Manabi home"
+            tabIndex={isSidebarCollapsed ? undefined : -1}
             className={cn(
-              "relative mx-auto flex items-center justify-between gap-3 px-4 py-2 md:px-8 transition-all duration-500 ease-in-out",
-              isSidebarCollapsed ? "max-w-7xl" : "max-w-5xl",
+              "absolute left-1/2 -translate-x-1/2 flex items-center justify-center rounded-lg p-1",
+              !isSidebarCollapsed && "md:hidden",
             )}
           >
-            <div
-              role="group"
-              aria-label="Select learning language"
-              className="relative inline-grid w-36 grid-cols-3 items-center rounded-full border border-border bg-card p-1 shadow-e1"
-            >
-              {/* Smooth sliding active pill */}
-              <span
-                aria-hidden="true"
-                className={cn(
-                  "pointer-events-none absolute inset-y-1 left-1 w-[calc(33.333%-0.18rem)] rounded-full bg-primary/15 ring-1 ring-primary/40 transition-[transform,background-color,box-shadow] duration-300 ease-(--ease-out-expo)",
-                  language === "es"
-                    ? "translate-x-0"
-                    : language === "fr"
-                      ? "translate-x-full"
-                      : "translate-x-[200%]",
-                )}
-              />
-              <button
-                type="button"
-                onClick={() => setLanguage("es")}
-                aria-pressed={language === "es"}
-                aria-label="Spanish"
-                title="Spanish"
-                className={cn(
-                  "relative z-10 flex h-8 items-center justify-center rounded-full text-base transition-transform duration-300 ease-(--ease-out-expo)",
-                  language === "es"
-                    ? "scale-110"
-                    : "opacity-60 hover:opacity-100",
-                )}
-              >
-                <span aria-hidden="true">🇪🇸</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setLanguage("fr")}
-                aria-pressed={language === "fr"}
-                aria-label="French"
-                title="French"
-                className={cn(
-                  "relative z-10 flex h-8 items-center justify-center rounded-full text-base transition-transform duration-300 ease-(--ease-out-expo)",
-                  language === "fr"
-                    ? "scale-110"
-                    : "opacity-60 hover:opacity-100",
-                )}
-              >
-                <span aria-hidden="true">🇫🇷</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setLanguage("ja")}
-                aria-pressed={language === "ja"}
-                aria-label="Japanese"
-                title="Japanese"
-                className={cn(
-                  "relative z-10 flex h-8 items-center justify-center rounded-full text-base transition-transform duration-300 ease-(--ease-out-expo)",
-                  language === "ja"
-                    ? "scale-110"
-                    : "opacity-60 hover:opacity-100",
-                )}
-              >
-                <span aria-hidden="true">🇯🇵</span>
-              </button>
-            </div>
+            <ManabiLogo className="size-8" markClassName="size-8" />
+          </Link>
 
-            {/* Centered logo when desktop sidebar is collapsed */}
-            <Link
-              href="/"
-              aria-label="Manabi home"
-              tabIndex={isSidebarCollapsed ? undefined : -1}
-              className={cn(
-                "absolute left-1/2 hidden -translate-x-1/2 items-center justify-center rounded-lg p-1 transition-[opacity,transform] duration-300 ease-(--ease-out-expo) md:flex",
-                isSidebarCollapsed
-                  ? "pointer-events-auto scale-100 opacity-100"
-                  : "pointer-events-none scale-95 opacity-0",
-              )}
+          <div className="ml-auto flex items-center gap-1">
+            <Select
+              value={language}
+              onValueChange={(v) => setLanguage(v as Language)}
             >
-              <ManabiLogo className="size-7" markClassName="size-7" />
-            </Link>
+              <SelectTrigger
+                aria-label="Select learning language"
+                className="w-auto gap-1 border-0 bg-transparent px-2 py-0 shadow-none ring-0 hover:bg-accent focus-visible:ring-0 data-[size=default]:h-10 dark:bg-transparent dark:hover:bg-accent"
+              >
+                <span className="text-lg leading-none" aria-hidden="true">
+                  {language === "es" ? "🇪🇸" : language === "fr" ? "🇫🇷" : "🇯🇵"}
+                </span>
+              </SelectTrigger>
+              <SelectContent align="end">
+                <SelectItem value="es">
+                  <span aria-hidden="true">🇪🇸</span>
+                  Spanish
+                </SelectItem>
+                <SelectItem value="fr">
+                  <span aria-hidden="true">🇫🇷</span>
+                  French
+                </SelectItem>
+                <SelectItem value="ja">
+                  <span aria-hidden="true">🇯🇵</span>
+                  Japanese
+                </SelectItem>
+              </SelectContent>
+            </Select>
 
-            <span className="text-xs font-medium text-muted-foreground transition-colors duration-300">
-              {language === "ja" ? "JLPT N5–N1" : "CEFR A1–C1"}
-            </span>
+            {!isLoading &&
+              (user ? (
+                <Link
+                  href="/profile"
+                  className={cn(
+                    "flex size-11 items-center justify-center rounded-full transition-colors duration-(--dur-1) hover:bg-accent",
+                    !isSidebarCollapsed && "md:hidden",
+                  )}
+                >
+                  <AvatarBadge
+                    initials={user.avatarInitials}
+                    avatarUrl={user.avatarUrl}
+                    size="sm"
+                    className="size-8 rounded-full"
+                  />
+                  <span className="sr-only">Your profile</span>
+                </Link>
+              ) : (
+                <button
+                  onClick={openLogin}
+                  aria-label="Log in"
+                  className={cn(
+                    "flex size-10 items-center justify-center rounded-xl text-foreground transition-colors duration-(--dur-1) hover:bg-accent hover:text-accent-foreground",
+                    !isSidebarCollapsed && "md:hidden",
+                  )}
+                >
+                  <UserRound className="size-5" />
+                  <span className="sr-only">Log in</span>
+                </button>
+              ))}
           </div>
-        </div>
+        </header>
 
         <div
           key={language}
           className={cn(
-            "animate-lang-swap mx-auto px-4 pb-24 pt-6 md:px-8 md:py-8 transition-all duration-500 ease-in-out",
+            "animate-lang-swap mx-auto px-4 pb-8 pt-6 md:px-8 md:py-8 transition-all duration-500 ease-in-out",
             isSidebarCollapsed ? "max-w-7xl" : "max-w-5xl",
           )}
         >
@@ -745,6 +673,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </AuthPromptContext.Provider>
         </div>
       </main>
+      </Sheet>
 
       {/* Auth Dialog */}
       <AuthDialog open={open} onOpenChange={setOpen} defaultTab={defaultTab} />
@@ -752,15 +681,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* Global Command Menu (⌘K) */}
       <CommandMenu />
 
-      {/* Bottom navigation bar — fixed flush to the bottom with no border on phones; floating pill on desktop when sidebar is collapsed */}
+      {/* Desktop-only floating pill when sidebar is collapsed */}
       <nav
         aria-label="Primary"
         className={cn(
-          "fixed bottom-0 left-0 right-0 z-50 md:bottom-6 md:left-1/2 md:right-auto md:w-max md:max-w-[calc(100vw-2rem)] md:-translate-x-1/2",
+          "hidden md:block fixed bottom-6 left-1/2 z-50 w-max max-w-[calc(100vw-2rem)] -translate-x-1/2",
           "transition-[opacity,transform] duration-(--dur-3) ease-(--ease-out-expo)",
           isSidebarCollapsed
             ? "pointer-events-auto translate-y-0 scale-100 opacity-100"
-            : "pointer-events-auto translate-y-0 scale-100 opacity-100 md:pointer-events-none md:translate-y-6 md:scale-95 md:opacity-0",
+            : "pointer-events-none translate-y-6 scale-95 opacity-0",
         )}
       >
         <div className="glass-strong flex w-full items-center justify-around gap-0.5 rounded-none border-0 px-2 pb-6 pt-1.5 md:w-auto md:justify-center md:gap-1 md:rounded-2xl md:border md:p-1.5">
