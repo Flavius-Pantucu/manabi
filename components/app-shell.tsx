@@ -469,7 +469,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           tabbed into, and background scroll is locked. Those are the parts of
           a drawer that are easy to leave out and obvious when missing. */}
       <Sheet open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
-        <header className="safe-top [--safe-top-pad:0.5rem] sticky top-0 z-30 flex items-center gap-2 border-b glass-panel px-3 pb-2 md:hidden">
+        <header className="safe-top [--safe-top-pad:0.5rem] sticky top-0 z-30 flex items-center justify-between border-b glass-panel px-3 pb-2 md:hidden">
           <SheetTrigger asChild>
             <button
               className="flex size-10 items-center justify-center rounded-xl text-foreground transition-colors duration-(--dur-1) hover:bg-accent hover:text-accent-foreground"
@@ -481,16 +481,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
           <Link
             href="/"
-            className="flex items-center gap-2.5 rounded-lg px-1"
+            className="absolute left-1/2 -translate-x-1/2 flex items-center justify-center rounded-lg p-1"
             aria-label="Manabi home"
           >
             <ManabiLogo className="size-8" markClassName="size-8" />
-            {/* Shippori's ascent/descent (1.16/0.288 em) are lopsided, so
-                `leading-none` centres the text box while the glyphs themselves
-                sit ~0.08em low next to the geometrically centred mark. */}
-            <span className="font-brand -translate-y-[0.08em] text-lg font-medium leading-none text-foreground">
-              Manabi
-            </span>
           </Link>
 
           {/* The account lives here rather than in the drawer alone, so
@@ -516,7 +510,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   aria-label="Log in"
                   className="flex size-10 items-center justify-center rounded-xl text-foreground transition-colors duration-(--dur-1) hover:bg-accent hover:text-accent-foreground"
                 >
-                  <LogIn className="size-5" />
+                  <UserRound className="size-5" />
                   <span className="sr-only">Log in</span>
                 </button>
               ))}
@@ -691,16 +685,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               aria-label="Manabi home"
               tabIndex={isSidebarCollapsed ? undefined : -1}
               className={cn(
-                "absolute left-1/2 hidden -translate-x-1/2 items-center gap-2 rounded-lg px-2 py-1 transition-[opacity,transform] duration-300 ease-(--ease-out-expo) md:flex",
+                "absolute left-1/2 hidden -translate-x-1/2 items-center justify-center rounded-lg p-1 transition-[opacity,transform] duration-300 ease-(--ease-out-expo) md:flex",
                 isSidebarCollapsed
                   ? "pointer-events-auto scale-100 opacity-100"
                   : "pointer-events-none scale-95 opacity-0",
               )}
             >
               <ManabiLogo className="size-7" markClassName="size-7" />
-              <span className="font-brand text-base font-medium leading-none text-foreground">
-                Manabi
-              </span>
             </Link>
 
             <span className="text-xs font-medium text-muted-foreground transition-colors duration-300">
@@ -732,7 +723,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <nav
         aria-label="Primary"
         className={cn(
-          "fixed bottom-1 left-1/2 z-50 w-[92vw] -translate-x-1/2 md:bottom-6 md:w-max md:max-w-[calc(100vw-2rem)]",
+          "fixed bottom-1.5 left-1/2 z-50 w-[92vw] -translate-x-1/2 md:bottom-6 md:w-max md:max-w-[calc(100vw-2rem)]",
           "transition-[opacity,transform] duration-(--dur-3) ease-(--ease-out-expo)",
           isSidebarCollapsed
             ? "pointer-events-auto translate-y-0 scale-100 opacity-100"
@@ -802,7 +793,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               onClick={openLogin}
               className="hidden min-w-13 flex-col items-center justify-center gap-1 rounded-xl px-2.5 py-1.5 text-muted-foreground transition-colors duration-(--dur-1) hover:bg-accent hover:text-accent-foreground md:flex"
             >
-              <LogIn className="size-4" />
+              <UserRound className="size-4" />
               <span className="text-[10px] font-medium leading-none">
                 Log in
               </span>
