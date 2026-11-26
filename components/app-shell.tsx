@@ -719,18 +719,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* Global Command Menu (⌘K) */}
       <CommandMenu />
 
-      {/* Bottom navigation dock — equal 8px (2) inset on left, right, and bottom on mobile; centered on desktop when sidebar is collapsed */}
+      {/* Bottom navigation bar — fixed flush to the bottom with no border on phones; floating pill on desktop when sidebar is collapsed */}
       <nav
         aria-label="Primary"
         className={cn(
-          "fixed bottom-2 left-2 right-2 z-50 md:bottom-6 md:left-1/2 md:right-auto md:w-max md:max-w-[calc(100vw-2rem)] md:-translate-x-1/2",
+          "fixed bottom-0 left-0 right-0 z-50 md:bottom-6 md:left-1/2 md:right-auto md:w-max md:max-w-[calc(100vw-2rem)] md:-translate-x-1/2",
           "transition-[opacity,transform] duration-(--dur-3) ease-(--ease-out-expo)",
           isSidebarCollapsed
             ? "pointer-events-auto translate-y-0 scale-100 opacity-100"
             : "pointer-events-auto translate-y-0 scale-100 opacity-100 md:pointer-events-none md:translate-y-6 md:scale-95 md:opacity-0",
         )}
       >
-        <div className="glass-strong flex w-full items-center justify-around gap-0.5 rounded-[28px] border p-1.5 md:w-auto md:justify-center md:gap-1 md:rounded-2xl">
+        <div className="glass-strong safe-bottom flex w-full items-center justify-around gap-0.5 rounded-none border-0 px-2 py-1.5 md:w-auto md:justify-center md:gap-1 md:rounded-2xl md:border md:p-1.5">
           <button
             onClick={() => setIsSidebarCollapsed(false)}
             className="hidden min-w-13 flex-col items-center justify-center gap-1 rounded-xl px-2.5 py-1.5 text-muted-foreground transition-colors duration-(--dur-1) hover:bg-accent hover:text-accent-foreground md:flex"
