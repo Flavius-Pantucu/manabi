@@ -7,7 +7,7 @@
  * the expanded shapes the app actually works with.
  */
 
-export type Language = "ja" | "es";
+export type Language = "es" | "fr" | "ja";
 
 export type Level = "N5" | "N4" | "N3" | "N2" | "N1";
 export const LEVELS: Level[] = ["N5", "N4", "N3", "N2", "N1"];

@@ -43,17 +43,21 @@ export function SrsPanel() {
             </span>
             <div>
               <p className="text-base font-semibold text-foreground">
-                {language === "es" ? "Start with Spanish vocabulary" : "Start with hiragana"}
+                {language === "es"
+                  ? "Start with Spanish vocabulary"
+                  : language === "fr"
+                    ? "Start with French vocabulary"
+                    : "Start with hiragana"}
               </p>
               <p className="mt-0.5 max-w-md text-sm text-secondary-foreground">
-                {language === "es"
-                  ? "Build your core A1 vocabulary and essential verbs first with spaced repetition."
-                  : "Japanese is written in 104 syllables. Learn those first and everything after it becomes readable."}
+                {language === "ja"
+                  ? "Japanese is written in 104 syllables. Learn those first and everything after it becomes readable."
+                  : "Build your core A1 vocabulary and essential verbs first with spaced repetition."}
               </p>
             </div>
           </div>
           <Link
-            href={language === "es" ? "/vocabulary" : "/kana"}
+            href={language === "ja" ? "/kana" : "/vocabulary"}
             className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-lg bg-primary px-5 text-sm font-semibold text-primary-foreground shadow-e1 transition-colors duration-(--dur-1) hover:bg-primary-hover"
           >
             Begin <ArrowRight className="size-4" />

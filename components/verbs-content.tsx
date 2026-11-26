@@ -22,7 +22,9 @@ const GROUP_TONE: Record<string, string> = {
   "-ar": "bg-ai/12 text-ai",
   "-er": "bg-matsuba/12 text-matsuba",
   "-ir": "bg-fuji/12 text-fuji",
+  "-re": "bg-kincha/12 text-kincha",
   "Irregular": "bg-shu/12 text-shu",
+  "Irrégulier": "bg-shu/12 text-shu",
 };
 
 const FORMS_JA: { key: string; label: string; jp: string }[] = [
@@ -55,9 +57,24 @@ const FORMS_ES: { key: string; label: string; jp: string }[] = [
   { key: "participio", label: "Past Participle", jp: "Participio" },
 ];
 
+const FORMS_FR: { key: string; label: string; jp: string }[] = [
+  { key: "presente_je", label: "Present (je)", jp: "Présent" },
+  { key: "presente_tu", label: "Present (tu)", jp: "Présent" },
+  { key: "presente_il", label: "Present (il/elle)", jp: "Présent" },
+  { key: "presente_nous", label: "Present (nous)", jp: "Présent" },
+  { key: "presente_ils", label: "Present (ils/elles)", jp: "Présent" },
+  { key: "passe_compose_je", label: "Passé composé (je)", jp: "Passé composé" },
+  { key: "imparfait_je", label: "Imperfect (je)", jp: "Imparfait" },
+  { key: "futur_je", label: "Future (je)", jp: "Futur" },
+  { key: "conditionnel_je", label: "Conditional (je)", jp: "Conditionnel" },
+  { key: "subjonctif_je", label: "Subjunctive (je)", jp: "Subjonctif" },
+  { key: "imperatif_tu", label: "Imperative (tu)", jp: "Impératif" },
+  { key: "participe", label: "Past Participle", jp: "Participe" },
+];
+
 function Conjugations({ v }: { v: Verb }) {
   const { language } = useLanguage();
-  const forms = language === "es" ? FORMS_ES : FORMS_JA;
+  const forms = language === "es" ? FORMS_ES : language === "fr" ? FORMS_FR : FORMS_JA;
   return (
     <Card>
       <CardContent className="flex flex-col gap-4 py-6">

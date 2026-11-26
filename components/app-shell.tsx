@@ -53,6 +53,7 @@ interface NavItem {
   label: string;
   labelJp: string;
   labelEs: string;
+  labelFr: string;
   icon: LucideIcon;
   adminOnly?: boolean;
   jaOnly?: boolean;
@@ -64,22 +65,24 @@ const navItems: NavItem[] = [
     label: "Dashboard",
     labelJp: "ダッシュボード",
     labelEs: "Tablero",
+    labelFr: "Tableau",
     icon: LayoutDashboard,
   },
-  { href: "/review", label: "Review", labelJp: "復習", labelEs: "Repaso", icon: Repeat },
-  { href: "/kana", label: "Kana", labelJp: "かな", labelEs: "Kana", icon: Shapes, jaOnly: true },
-  { href: "/verbs", label: "Verbs", labelJp: "動詞", labelEs: "Verbos", icon: Languages },
-  { href: "/grammar", label: "Grammar", labelJp: "文法", labelEs: "Gramática", icon: BookOpen },
-  { href: "/vocabulary", label: "Vocab", labelJp: "語彙", labelEs: "Vocabulario", icon: BookText },
-  { href: "/kanji", label: "Kanji", labelJp: "漢字", labelEs: "Kanji", icon: PenLine, jaOnly: true },
-  { href: "/reading", label: "Reading", labelJp: "読解", labelEs: "Lectura", icon: FileText },
-  { href: "/quiz", label: "Quiz", labelJp: "クイズ", labelEs: "Examen", icon: HelpCircle },
-  { href: "/progress", label: "Progress", labelJp: "統計", labelEs: "Progreso", icon: TrendingUp },
+  { href: "/review", label: "Review", labelJp: "復習", labelEs: "Repaso", labelFr: "Révision", icon: Repeat },
+  { href: "/kana", label: "Kana", labelJp: "かな", labelEs: "Kana", labelFr: "Kana", icon: Shapes, jaOnly: true },
+  { href: "/verbs", label: "Verbs", labelJp: "動詞", labelEs: "Verbos", labelFr: "Verbes", icon: Languages },
+  { href: "/grammar", label: "Grammar", labelJp: "文法", labelEs: "Gramática", labelFr: "Grammaire", icon: BookOpen },
+  { href: "/vocabulary", label: "Vocab", labelJp: "語彙", labelEs: "Vocabulario", labelFr: "Vocabulaire", icon: BookText },
+  { href: "/kanji", label: "Kanji", labelJp: "漢字", labelEs: "Kanji", labelFr: "Kanji", icon: PenLine, jaOnly: true },
+  { href: "/reading", label: "Reading", labelJp: "読解", labelEs: "Lectura", labelFr: "Lecture", icon: FileText },
+  { href: "/quiz", label: "Quiz", labelJp: "クイズ", labelEs: "Examen", labelFr: "Examen", icon: HelpCircle },
+  { href: "/progress", label: "Progress", labelJp: "統計", labelEs: "Progreso", labelFr: "Progrès", icon: TrendingUp },
   {
     href: "/admin",
     label: "Admin",
     labelJp: "管理",
     labelEs: "Admin",
+    labelFr: "Admin",
     icon: ShieldCheck,
     adminOnly: true,
   },
@@ -288,7 +291,7 @@ function SidebarBody({
         <ul className="flex flex-col gap-1">
           {navItems.map((item) => {
             if (item.adminOnly && user?.role !== "admin") return null;
-            if (item.jaOnly && language === "es") return null;
+            if (item.jaOnly && language !== "ja") return null;
             const isActive = pathname === item.href;
             return (
               <li key={item.href}>
@@ -327,7 +330,11 @@ function SidebarBody({
                         : "text-muted-foreground",
                     )}
                   >
-                    {language === "es" ? item.labelEs : item.labelJp}
+                    {language === "es"
+                      ? item.labelEs
+                      : language === "fr"
+                        ? item.labelFr
+                        : item.labelJp}
                   </span>
                 </Link>
               </li>
@@ -617,31 +624,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <div
               role="group"
               aria-label="Select learning language"
-              className="relative inline-grid w-24 grid-cols-2 items-center rounded-full border border-border bg-card p-1 shadow-e1"
+              className="relative inline-grid w-36 grid-cols-3 items-center rounded-full border border-border bg-card p-1 shadow-e1"
             >
               {/* Smooth sliding active pill */}
               <span
                 aria-hidden="true"
                 className={cn(
-                  "pointer-events-none absolute inset-y-1 left-1 w-[calc(50%-0.25rem)] rounded-full bg-primary/15 ring-1 ring-primary/40 transition-[transform,background-color,box-shadow] duration-300 ease-(--ease-out-expo)",
-                  language === "es" ? "translate-x-full" : "translate-x-0",
+                  "pointer-events-none absolute inset-y-1 left-1 w-[calc(33.333%-0.18rem)] rounded-full bg-primary/15 ring-1 ring-primary/40 transition-[transform,background-color,box-shadow] duration-300 ease-(--ease-out-expo)",
+                  language === "es"
+                    ? "translate-x-0"
+                    : language === "fr"
+                      ? "translate-x-full"
+                      : "translate-x-[200%]",
                 )}
               />
-              <button
-                type="button"
-                onClick={() => setLanguage("ja")}
-                aria-pressed={language === "ja"}
-                aria-label="Japanese"
-                title="Japanese"
-                className={cn(
-                  "relative z-10 flex h-8 items-center justify-center rounded-full text-base transition-transform duration-300 ease-(--ease-out-expo)",
-                  language === "ja"
-                    ? "scale-110"
-                    : "opacity-60 hover:opacity-100",
-                )}
-              >
-                <span aria-hidden="true">🇯🇵</span>
-              </button>
               <button
                 type="button"
                 onClick={() => setLanguage("es")}
@@ -656,6 +652,36 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 )}
               >
                 <span aria-hidden="true">🇪🇸</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setLanguage("fr")}
+                aria-pressed={language === "fr"}
+                aria-label="French"
+                title="French"
+                className={cn(
+                  "relative z-10 flex h-8 items-center justify-center rounded-full text-base transition-transform duration-300 ease-(--ease-out-expo)",
+                  language === "fr"
+                    ? "scale-110"
+                    : "opacity-60 hover:opacity-100",
+                )}
+              >
+                <span aria-hidden="true">🇫🇷</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setLanguage("ja")}
+                aria-pressed={language === "ja"}
+                aria-label="Japanese"
+                title="Japanese"
+                className={cn(
+                  "relative z-10 flex h-8 items-center justify-center rounded-full text-base transition-transform duration-300 ease-(--ease-out-expo)",
+                  language === "ja"
+                    ? "scale-110"
+                    : "opacity-60 hover:opacity-100",
+                )}
+              >
+                <span aria-hidden="true">🇯🇵</span>
               </button>
             </div>
 
@@ -678,7 +704,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </Link>
 
             <span className="text-xs font-medium text-muted-foreground transition-colors duration-300">
-              {language === "es" ? "CEFR A1–C1" : "JLPT N5–N1"}
+              {language === "ja" ? "JLPT N5–N1" : "CEFR A1–C1"}
             </span>
           </div>
         </div>
@@ -730,7 +756,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
           {quickNavItems.map((item) => {
             if (item.adminOnly && user?.role !== "admin") return null;
-            if (item.jaOnly && language === "es") return null;
+            if (item.jaOnly && language !== "ja") return null;
             const isActive = pathname === item.href;
             return (
               <Link

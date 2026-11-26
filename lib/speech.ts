@@ -106,9 +106,11 @@ export function allVoices(): SpeechSynthesisVoice[] {
 const IS_JA = /^ja(-|_|$)/i;
 /** Matches es, es-ES, es-MX, es-419, etc. */
 const IS_ES = /^es(-|_|$)/i;
+/** Matches fr, fr-FR, fr-CA, etc. */
+const IS_FR = /^fr(-|_|$)/i;
 
-export function listVoicesForLanguage(lang: "ja" | "es" = "ja"): SpeechSynthesisVoice[] {
-  const re = lang === "es" ? IS_ES : IS_JA;
+export function listVoicesForLanguage(lang: "es" | "fr" | "ja" = "ja"): SpeechSynthesisVoice[] {
+  const re = lang === "es" ? IS_ES : lang === "fr" ? IS_FR : IS_JA;
   return refresh()
     .filter((v) => re.test(v.lang))
     .sort((a, b) =>
@@ -173,7 +175,7 @@ export function setRate(r: number) {
  * Order: the learner's explicit choice, then a local ja-JP voice, then any
  * local Japanese voice, then a network one as a last resort.
  */
-export function resolveVoice(lang: "ja" | "es" = "ja"): SpeechSynthesisVoice | undefined {
+export function resolveVoice(lang: "es" | "fr" | "ja" = "ja"): SpeechSynthesisVoice | undefined {
   const list = listVoicesForLanguage(lang);
   if (!list.length) return undefined;
 
@@ -184,7 +186,12 @@ export function resolveVoice(lang: "ja" | "es" = "ja"): SpeechSynthesisVoice | u
       if (match) return match;
     }
   }
-  const preferredRe = lang === "es" ? /^es(-|_)(ES|MX|US|419)$/i : /^ja(-|_)JP$/i;
+  const preferredRe =
+    lang === "es"
+      ? /^es(-|_)(ES|MX|US|419)$/i
+      : lang === "fr"
+        ? /^fr(-|_)(FR|CA)$/i
+        : /^ja(-|_)JP$/i;
   return (
     list.find((v) => v.localService && preferredRe.test(v.lang)) ??
     list.find((v) => v.localService) ??
@@ -202,7 +209,7 @@ export function onlyNetworkVoices(): boolean {
 
 export interface SpeakOptions {
   rate?: number;
-  lang?: "ja" | "es";
+  lang?: "es" | "fr" | "ja";
   onEnd?: () => void;
   onUnavailable?: () => void;
 }
@@ -222,11 +229,10 @@ export function speak(text: string, opts: SpeakOptions = {}): boolean {
   const lang = opts.lang ?? "ja";
   const voice = resolveVoice(lang);
   if (!voice) {
-    if (lang === "es") {
-      // Fallback for Spanish using explicit lang tag if no specific voice is listed yet
+    if (lang === "es" || lang === "fr") {
       s.cancel();
       const u = new SpeechSynthesisUtterance(text);
-      u.lang = "es-ES";
+      u.lang = lang === "es" ? "es-ES" : "fr-FR";
       u.rate = opts.rate ?? getRate();
       u.pitch = 1;
       u.onend = () => opts.onEnd?.();
@@ -241,7 +247,7 @@ export function speak(text: string, opts: SpeakOptions = {}): boolean {
 
   const u = new SpeechSynthesisUtterance(text);
   u.voice = voice;
-  u.lang = voice.lang || (lang === "es" ? "es-ES" : "ja-JP");
+  u.lang = voice.lang || (lang === "es" ? "es-ES" : lang === "fr" ? "fr-FR" : "ja-JP");
   u.rate = opts.rate ?? getRate();
   u.pitch = 1;
   u.onend = () => opts.onEnd?.();

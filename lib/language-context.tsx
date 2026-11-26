@@ -10,7 +10,7 @@ import {
 } from "react";
 import type { Level } from "@/lib/content/types";
 
-export type Language = "ja" | "es";
+export type Language = "es" | "fr" | "ja";
 
 const STORAGE_KEY = "manabi.language";
 
@@ -27,18 +27,19 @@ interface LanguageContextValue {
   setLanguage: (lang: Language) => void;
   isJapanese: boolean;
   isSpanish: boolean;
+  isFrench: boolean;
   formatLevel: (level: Level) => string;
 }
 
 const LanguageContext = createContext<LanguageContextValue | null>(null);
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
-  const [language, setLanguageState] = useState<Language>("ja");
+  const [language, setLanguageState] = useState<Language>("es");
 
   useEffect(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved === "ja" || saved === "es") {
+      if (saved === "es" || saved === "fr" || saved === "ja") {
         setLanguageState(saved);
         document.documentElement.dataset.lang = saved;
         return;
@@ -46,7 +47,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     } catch {
       /* ignore storage errors */
     }
-    document.documentElement.dataset.lang = "ja";
+    document.documentElement.dataset.lang = "es";
   }, []);
 
   const setLanguage = useCallback((lang: Language) => {
@@ -60,7 +61,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const formatLevel = useCallback(
-    (level: Level) => (language === "es" ? CEFR_LABELS[level] : level),
+    (level: Level) => (language === "ja" ? level : CEFR_LABELS[level]),
     [language],
   );
 
@@ -71,6 +72,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
         setLanguage,
         isJapanese: language === "ja",
         isSpanish: language === "es",
+        isFrench: language === "fr",
         formatLevel,
       }}
     >

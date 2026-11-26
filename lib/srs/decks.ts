@@ -31,7 +31,7 @@ export interface ReviewItem {
   mode: ReviewMode;
   level?: Level;
   prompt: string;
-  promptLang: "ja" | "es" | "en";
+  promptLang: "ja" | "es" | "fr" | "en";
   instruction: string;
   answer: string;
   answerReading?: string;
@@ -127,8 +127,9 @@ export function kanaDeckItems(): ReviewItem[] {
 
 function vocabItems(rows: Vocab[], meanings: string[], language: Language = "ja"): ReviewItem[] {
   const out: ReviewItem[] = [];
-  const pLang = language === "es" ? "es" : "ja";
-  const langLabel = language === "es" ? "Spanish" : "Japanese";
+  const pLang = language;
+  const langLabel =
+    language === "es" ? "Spanish" : language === "fr" ? "French" : "Japanese";
   for (const w of rows) {
     // Recognition: see the word, know what it means.
     out.push({
@@ -150,7 +151,7 @@ function vocabItems(rows: Vocab[], meanings: string[], language: Language = "ja"
       prompt: w.meaning, promptLang: "en",
       instruction: `Type it in ${langLabel}`,
       answer: w.word, answerReading: w.reading,
-      accepts: language === "es" ? [w.word] : [w.reading, w.word].filter(Boolean),
+      accepts: language === "ja" ? [w.reading, w.word].filter(Boolean) : [w.word],
       speak: w.word, href: "/vocabulary",
     });
   }
@@ -213,10 +214,25 @@ export const SPANISH_VERB_FORMS = [
   { key: "subjuntivo_yo", label: "subjunctive (yo)" },
 ] as const;
 
+export const FRENCH_VERB_FORMS = [
+  { key: "presente_je", label: "present (je)" },
+  { key: "presente_tu", label: "present (tu)" },
+  { key: "presente_il", label: "present (il/elle)" },
+  { key: "passe_compose_je", label: "passé composé (je)" },
+  { key: "imparfait_je", label: "imperfect (je)" },
+  { key: "futur_je", label: "future (je)" },
+  { key: "subjonctif_je", label: "subjunctive (je)" },
+] as const;
+
 function verbItems(rows: Verb[], meanings: string[], language: Language = "ja"): ReviewItem[] {
   const out: ReviewItem[] = [];
-  const pLang = language === "es" ? "es" : "ja";
-  const forms = language === "es" ? SPANISH_VERB_FORMS : VERB_FORMS;
+  const pLang = language;
+  const forms =
+    language === "es"
+      ? SPANISH_VERB_FORMS
+      : language === "fr"
+        ? FRENCH_VERB_FORMS
+        : VERB_FORMS;
   for (const v of rows) {
     out.push({
       cardId: `${v.id}:meaning`,
@@ -245,7 +261,7 @@ function verbItems(rows: Verb[], meanings: string[], language: Language = "ja"):
 }
 
 function grammarItems(rows: GrammarPoint[], meanings: string[], language: Language = "ja"): ReviewItem[] {
-  const pLang = language === "es" ? "es" : "ja";
+  const pLang = language;
   return rows.map((g) => ({
     cardId: `${g.id}:meaning`,
     deck: "grammar" as DeckId, mode: "choice" as ReviewMode, level: g.level,

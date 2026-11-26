@@ -81,6 +81,13 @@ const spanishGreetings = [
   { jp: "¡Muy bien!", en: "Well done" },
 ];
 
+const frenchGreetings = [
+  { jp: "Bonjour !", en: "Welcome back" },
+  { jp: "Bon courage !", en: "Keep it up" },
+  { jp: "Magnifique !", en: "Amazing" },
+  { jp: "Très bien !", en: "Well done" },
+];
+
 export function DashboardContent() {
   const { language } = useLanguage();
   const { manifest } = useContent();
@@ -108,7 +115,12 @@ export function DashboardContent() {
 
   useEffect(() => {
     setMounted(true);
-    const pool = language === "es" ? spanishGreetings : japaneseGreetings;
+    const pool =
+      language === "es"
+        ? spanishGreetings
+        : language === "fr"
+          ? frenchGreetings
+          : japaneseGreetings;
     setGreeting(pool[Math.floor(Math.random() * pool.length)]);
   }, [language]);
 
@@ -118,17 +130,38 @@ export function DashboardContent() {
     const t = manifest?.levels;
     const sum = (k: "vocab" | "kanji" | "verbs" | "grammar") =>
       t ? Object.values(t).reduce((a, l) => a + l[k], 0) : 0;
-    const pre = language === "es" ? "es:" : "";
+    const pre = language === "ja" ? "" : `${language}:`;
     const done = (prefix: string) =>
       Object.entries(cards ?? {}).filter(
         ([id, c]) => id.startsWith(`${pre}${prefix}`) && c.phase === "review",
       ).length;
 
     const all = [
-      { label: "Vocabulary", labelJp: language === "es" ? "Vocabulario" : "語彙", progress: done("vocab:"), total: sum("vocab") * 2, href: "/vocabulary", icon: BookOpen },
+      {
+        label: "Vocabulary",
+        labelJp: language === "es" ? "Vocabulario" : language === "fr" ? "Vocabulaire" : "語彙",
+        progress: done("vocab:"),
+        total: sum("vocab") * 2,
+        href: "/vocabulary",
+        icon: BookOpen,
+      },
       ...(language === "ja" ? [{ label: "Kanji", labelJp: "漢字", progress: done("kanji:"), total: sum("kanji") * 2, href: "/kanji", icon: Star }] : []),
-      { label: "Verbs", labelJp: language === "es" ? "Verbos" : "動詞", progress: done("verb:"), total: sum("verbs") * 7, href: "/verbs", icon: Languages },
-      { label: "Grammar", labelJp: language === "es" ? "Gramática" : "文法", progress: done("grammar:"), total: sum("grammar"), href: "/grammar", icon: Sparkles },
+      {
+        label: "Verbs",
+        labelJp: language === "es" ? "Verbos" : language === "fr" ? "Verbes" : "動詞",
+        progress: done("verb:"),
+        total: sum("verbs") * 7,
+        href: "/verbs",
+        icon: Languages,
+      },
+      {
+        label: "Grammar",
+        labelJp: language === "es" ? "Gramática" : language === "fr" ? "Grammaire" : "文法",
+        progress: done("grammar:"),
+        total: sum("grammar"),
+        href: "/grammar",
+        icon: Sparkles,
+      },
     ];
     return all;
   }, [manifest, cards, language]);

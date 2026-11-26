@@ -38,13 +38,13 @@ function fetchJson<T>(path: string): Promise<T> {
 }
 
 const file = (kind: Kind, level: Level, lang: Language = "ja") =>
-  lang === "es"
-    ? `/data/es/${kind}/${level.toLowerCase()}.json`
-    : `/data/${kind}/${level.toLowerCase()}.json`;
+  lang === "ja"
+    ? `/data/${kind}/${level.toLowerCase()}.json`
+    : `/data/${lang}/${kind}/${level.toLowerCase()}.json`;
 
 export function loadManifest(lang: Language = "ja"): Promise<ContentManifest> {
   return fetchJson<ContentManifest>(
-    lang === "es" ? "/data/es/index.json" : "/data/index.json",
+    lang === "ja" ? "/data/index.json" : `/data/${lang}/index.json`,
   );
 }
 
@@ -63,7 +63,7 @@ const key = (s: string) => s.replace(/[\s:]/g, "");
 const wordKey = (word: string, reading: string) =>
   reading && reading !== word ? `${key(word)}@${key(reading)}` : key(word);
 
-const idPrefix = (lang: Language) => (lang === "es" ? "es:" : "");
+const idPrefix = (lang: Language) => (lang === "ja" ? "" : `${lang}:`);
 
 function expandVocab(rows: WireVocab[], level: Level, lang: Language = "ja"): Vocab[] {
   const pre = idPrefix(lang);
@@ -142,7 +142,7 @@ function expandReading(rows: WireReading[], level: Level, lang: Language = "ja")
 export const loadVocab = (l: Level, lang: Language = "ja") =>
   fetchJson<WireVocab[]>(file("vocab", l, lang)).then((r) => expandVocab(r, l, lang));
 export const loadKanji = (l: Level, lang: Language = "ja") =>
-  lang === "es"
+  lang !== "ja"
     ? Promise.resolve<Kanji[]>([])
     : fetchJson<WireKanji[]>(file("kanji", l, lang)).then((r) => expandKanji(r, l));
 export const loadVerbs = (l: Level, lang: Language = "ja") =>

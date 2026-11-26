@@ -25,7 +25,7 @@ export function LevelFilter({
   return (
     <div
       role="group"
-      aria-label={language === "es" ? "CEFR level" : "JLPT level"}
+      aria-label={language === "ja" ? "JLPT level" : "CEFR level"}
       className={cn("flex flex-wrap gap-1.5", className)}
     >
       {LEVELS.map((lv) => {
