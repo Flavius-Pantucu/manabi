@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -14,34 +14,31 @@ import {
   Check,
   X,
   TrendingUp,
-  Star,
-  AlertCircle,
-  RotateCcw,
+  Sparkles,
   ShieldCheck,
   LayoutDashboard,
+  Layers,
+  Target,
+  CheckCircle2,
+  AlertCircle,
 } from "lucide-react";
 import {
-  AreaChart,
-  Area,
+  BarChart,
+  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  RadialBarChart,
-  RadialBar,
-  Cell,
-  PieChart,
-  Pie,
-  Legend,
 } from "recharts";
 import { useAuth } from "@/lib/auth-context";
 import { downscaleImage } from "@/lib/image";
-import { useAppDispatch } from "@/lib/store/hooks";
+import { useAppDispatch, useAppSelector } from "@/lib/store/hooks";
 import { resetSrsState } from "@/lib/store/features/srs-slice";
 import { resetLearningState } from "@/lib/store/features/learning-slice";
 import { clearSyncState } from "@/lib/sync/client";
 import { useLearning } from "@/lib/learning-context";
+import { type Language } from "@/lib/language-context";
 import { AvatarBadge, useAuthPrompt } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -94,200 +91,6 @@ function StatCard({
       <p className="text-sm font-medium text-foreground/80">{label}</p>
       {sublabel && (
         <p className="mt-0.5 text-xs text-muted-foreground">{sublabel}</p>
-      )}
-    </div>
-  );
-}
-
-// ─── Quiz Score Chart ─────────────────────────────────────────────────────────
-
-function QuizChart({ scores }: { scores: number[] }) {
-  const data = scores.map((score, i) => ({
-    quiz: `Quiz ${i + 1}`,
-    score,
-  }));
-
-  return (
-    <div className="rounded-2xl border border-border bg-card p-5">
-      <div className="mb-4 flex items-center gap-2">
-        <TrendingUp className="size-5 text-primary" />
-        <h3 className="font-semibold text-foreground">Quiz Performance</h3>
-        <span className="ml-auto text-xs text-muted-foreground">
-          {scores.length} quizzes taken
-        </span>
-      </div>
-      {scores.length === 0 ? (
-        <div className="flex h-40 items-center justify-center text-sm text-muted-foreground">
-          No quiz scores yet. Take a quiz to see your progress!
-        </div>
-      ) : (
-        <ResponsiveContainer width="100%" height={180}>
-          <AreaChart
-            data={data}
-            margin={{ top: 4, right: 4, bottom: 0, left: -20 }}
-          >
-            <defs>
-              <linearGradient id="scoreGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop
-                  offset="5%"
-                  stopColor="var(--color-primary)"
-                  stopOpacity={0.3}
-                />
-                <stop
-                  offset="95%"
-                  stopColor="var(--color-primary)"
-                  stopOpacity={0.02}
-                />
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
-            <XAxis
-              dataKey="quiz"
-              tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }}
-              axisLine={false}
-              tickLine={false}
-            />
-            <YAxis
-              domain={[0, 100]}
-              tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }}
-              axisLine={false}
-              tickLine={false}
-            />
-            <Tooltip
-              contentStyle={{
-                background: "var(--color-card)",
-                border: "1px solid var(--color-border)",
-                borderRadius: "8px",
-                fontSize: "12px",
-              }}
-              formatter={(v: number) => [`${v}%`, "Score"]}
-            />
-            <Area
-              type="monotone"
-              dataKey="score"
-              stroke="var(--color-primary)"
-              strokeWidth={2}
-              fill="url(#scoreGrad)"
-              dot={{ fill: "var(--color-primary)", r: 4, strokeWidth: 0 }}
-              activeDot={{ r: 6 }}
-            />
-          </AreaChart>
-        </ResponsiveContainer>
-      )}
-    </div>
-  );
-}
-
-// ─── Vocab Breakdown ──────────────────────────────────────────────────────────
-
-function VocabBreakdown({
-  vocabStatus,
-}: {
-  vocabStatus: Record<number, "learned" | "review" | "difficult">;
-}) {
-  const counts = { learned: 0, review: 0, difficult: 0 };
-  const safeVocab = vocabStatus && typeof vocabStatus === "object" ? vocabStatus : {};
-  Object.values(safeVocab).forEach((s) => counts[s]++);
-  const total = counts.learned + counts.review + counts.difficult;
-
-  const pieData = [
-    { name: "Learned", value: counts.learned, color: "var(--color-chart-3)" },
-    { name: "Review", value: counts.review, color: "var(--color-chart-2)" },
-    {
-      name: "Difficult",
-      value: counts.difficult,
-      color: "var(--color-chart-5)",
-    },
-  ].filter((d) => d.value > 0);
-
-  const bars = [
-    {
-      label: "Learned",
-      count: counts.learned,
-      icon: Star,
-      colorClass: "bg-success",
-    },
-    {
-      label: "Review",
-      count: counts.review,
-      icon: RotateCcw,
-      colorClass: "bg-warning",
-    },
-    {
-      label: "Difficult",
-      count: counts.difficult,
-      icon: AlertCircle,
-      colorClass: "bg-destructive",
-    },
-  ];
-
-  return (
-    <div className="rounded-2xl border border-border bg-card p-5">
-      <div className="mb-5 flex items-center gap-2">
-        <BookOpen className="size-5 text-primary" />
-        <h3 className="font-semibold text-foreground">Vocabulary Status</h3>
-        <span className="ml-auto text-xs text-muted-foreground">
-          {total} words tracked
-        </span>
-      </div>
-
-      {total === 0 ? (
-        <p className="text-sm text-muted-foreground text-center py-6">
-          Mark vocabulary words to see your breakdown here.
-        </p>
-      ) : (
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-6">
-          {/* Mini pie */}
-          {pieData.length > 0 && (
-            <div className="shrink-0">
-              <ResponsiveContainer width={120} height={120}>
-                <PieChart>
-                  <Pie
-                    data={pieData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={32}
-                    outerRadius={52}
-                    dataKey="value"
-                    strokeWidth={2}
-                    stroke="var(--color-card)"
-                  >
-                    {pieData.map((entry, i) => (
-                      <Cell key={i} fill={entry.color} />
-                    ))}
-                  </Pie>
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-
-          {/* Progress bars */}
-          <div className="flex flex-1 flex-col gap-2.5">
-            {bars.map(({ label, count, icon: Icon, colorClass }) => {
-              const pct = total > 0 ? Math.round((count / total) * 100) : 0;
-              return (
-                <div key={label} className="flex items-center gap-3">
-                  <Icon className="size-3.5 text-muted-foreground shrink-0" />
-                  <span className="w-16 text-xs text-muted-foreground">
-                    {label}
-                  </span>
-                  <div className="flex-1 h-1.5 rounded-full bg-secondary overflow-hidden">
-                    <div
-                      className={cn(
-                        "h-full rounded-full transition-all duration-700",
-                        colorClass,
-                      )}
-                      style={{ width: `${pct}%` }}
-                    />
-                  </div>
-                  <span className="w-6 text-right text-xs font-medium text-foreground">
-                    {count}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
       )}
     </div>
   );
@@ -481,36 +284,32 @@ function EditProfileInline({ onDone }: { onDone: () => void }) {
 
 // ─── Level Badge ──────────────────────────────────────────────────────────────
 
-function LevelBadge({ lessonsCompleted }: { lessonsCompleted: number }) {
+function LevelBadge({ totalMastered }: { totalMastered: number }) {
   const levels = [
     {
       min: 0,
-      label: "Beginner",
-      jp: "初心者",
+      label: "Explorer",
       color: "bg-panel-foreground/12 text-panel-foreground",
     },
     {
-      min: 10,
-      label: "Elementary",
-      jp: "初級",
+      min: 25,
+      label: "Apprentice",
       color: "bg-ai/20 text-ai dark:text-ai",
     },
     {
-      min: 25,
-      label: "Intermediate",
-      jp: "中級",
+      min: 100,
+      label: "Practitioner",
       color: "bg-fuji/20 text-fuji",
     },
     {
-      min: 50,
-      label: "Advanced",
-      jp: "上級",
+      min: 250,
+      label: "Polyglot",
       color: "bg-kincha/20 text-kincha",
     },
   ];
 
   const level =
-    [...levels].reverse().find((l) => lessonsCompleted >= l.min) ?? levels[0];
+    [...levels].reverse().find((l) => totalMastered >= l.min) ?? levels[0];
 
   return (
     <span
@@ -520,10 +319,7 @@ function LevelBadge({ lessonsCompleted }: { lessonsCompleted: number }) {
       )}
     >
       <GraduationCap className="size-3.5" />
-      {level.label}{" "}
-      <span lang="ja" className="font-jp opacity-80">
-        · {level.jp}
-      </span>
+      {level.label}
     </span>
   );
 }
@@ -641,19 +437,111 @@ function ResetProgressPanel() {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
+type StatsFilter = "all" | Language;
+
+function cardLanguage(cardId: string): Language {
+  if (cardId.startsWith("es:")) return "es";
+  if (cardId.startsWith("fr:")) return "fr";
+  return "ja";
+}
+
+function cardDeck(cardId: string): "vocab" | "verbs" | "grammar" | "kanji" | "kana" {
+  const clean = cardId.replace(/^(es|fr):/, "");
+  if (clean.startsWith("vocab:")) return "vocab";
+  if (clean.startsWith("verb:")) return "verbs";
+  if (clean.startsWith("grammar:")) return "grammar";
+  if (clean.startsWith("kanji:")) return "kanji";
+  return "kana";
+}
+
+const LANG_META: Record<Language, { label: string; flag: string; dot: string }> = {
+  es: { label: "Spanish", flag: "🇪🇸", dot: "bg-red-500" },
+  fr: { label: "French", flag: "🇫🇷", dot: "bg-blue-500" },
+  ja: { label: "Japanese", flag: "🇯🇵", dot: "bg-pink-500" },
+};
+
 export default function ProfilePage() {
   const { user, isLoading, logout } = useAuth();
-  const {
-    streak,
-    wordsLearned,
-    verbsMastered,
-    lessonsCompleted,
-    vocabStatus,
-    quizScores,
-  } = useLearning();
+  const { streak, quizScores } = useLearning();
+  const srsCards = useAppSelector((s) => s.srs?.cards);
+  const srsLog = useAppSelector((s) => s.srs?.log);
+  const srsDaily = useAppSelector((s) => s.srs?.daily);
   const router = useRouter();
   const { openLogin } = useAuthPrompt();
   const [editing, setEditing] = useState(false);
+  const [statsFilter, setStatsFilter] = useState<StatsFilter>("all");
+
+  const stats = useMemo(() => {
+    const entries = Object.entries(srsCards ?? {});
+    const filtered =
+      statsFilter === "all"
+        ? entries
+        : entries.filter(([id]) => cardLanguage(id) === statsFilter);
+
+    let totalCards = 0;
+    let mastered = 0;
+    let learning = 0;
+    const byDeck = { vocab: 0, verbs: 0, grammar: 0, kanji: 0, kana: 0 };
+
+    for (const [id, c] of filtered) {
+      if (!c || c.phase === "new") continue;
+      totalCards++;
+      const deck = cardDeck(id);
+      byDeck[deck]++;
+      if (c.phase === "review" && c.stability >= 21) mastered++;
+      else learning++;
+    }
+
+    const perLanguage = (["es", "fr", "ja"] as Language[]).map((lang) => {
+      const langEntries = entries.filter(([id]) => cardLanguage(id) === lang);
+      let started = 0;
+      let langMastered = 0;
+      let vocab = 0;
+      let verbs = 0;
+      let grammar = 0;
+      for (const [id, c] of langEntries) {
+        if (!c || c.phase === "new") continue;
+        started++;
+        if (c.phase === "review" && c.stability >= 21) langMastered++;
+        const d = cardDeck(id);
+        if (d === "vocab") vocab++;
+        else if (d === "verbs") verbs++;
+        else if (d === "grammar") grammar++;
+      }
+      return { lang, started, mastered: langMastered, vocab, verbs, grammar };
+    });
+
+    const filteredLogs = (srsLog ?? []).filter((l) =>
+      statsFilter === "all" ? true : cardLanguage(l.id) === statsFilter,
+    );
+    const totalReviews = filteredLogs.length;
+    const correctReviews = filteredLogs.filter((l) => l.grade > 1).length;
+    const retention =
+      totalReviews > 0 ? Math.round((correctReviews / totalReviews) * 100) : 0;
+
+    // Last 7 days review volume
+    const days: { day: string; reviews: number }[] = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(Date.now() - i * 86_400_000);
+      const key = d.toISOString().slice(0, 10);
+      const label = d.toLocaleDateString("en-US", { weekday: "short" });
+      days.push({ day: label, reviews: srsDaily?.[key]?.reviews ?? 0 });
+    }
+
+    const totalMasteredAll = perLanguage.reduce((a, l) => a + l.mastered, 0);
+
+    return {
+      totalCards,
+      mastered,
+      learning,
+      byDeck,
+      perLanguage,
+      totalReviews,
+      retention,
+      days,
+      totalMasteredAll,
+    };
+  }, [srsCards, srsLog, srsDaily, statsFilter]);
 
   if (isLoading) {
     return (
@@ -663,16 +551,6 @@ export default function ProfilePage() {
     );
   }
 
-  /**
-   * Signed out.
-   *
-   * This used to `router.replace("/")`, which is indistinguishable from the
-   * page being broken: you click Profile, the address bar flickers, and you
-   * are back on the dashboard with nothing said. A session can lapse for
-   * ordinary reasons — it expired, the cookie was cleared, you are on a
-   * different host than the one it was set for — and every one of them is
-   * fixed by signing in, so say that instead of navigating away.
-   */
   if (!user) {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center px-4 text-center">
@@ -712,19 +590,8 @@ export default function ProfilePage() {
 
   return (
     <div className="space-y-6 pb-4">
-      {/* ── Hero ── */}
-      {/* The same fixed brand panel the auth dialog uses, so the two brand
-          moments in the app read as one surface. It replaces a
-          `from-primary … to-primary/60` gradient whose tail measured 2.69:1
-          against its own white text in light mode. */}
+      {/* ── Hero (Initial Card — clean, language-agnostic) ── */}
       <div className="relative overflow-hidden rounded-2xl bg-panel p-6 text-panel-foreground">
-        <span
-          aria-hidden="true"
-          className="pointer-events-none absolute -right-10 -top-16 select-none font-jp text-[10rem] font-bold leading-none text-panel-foreground/[0.06]"
-        >
-          学
-        </span>
-
         <div className="relative flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex items-center gap-4">
             <AvatarBadge
@@ -738,7 +605,7 @@ export default function ProfilePage() {
               </h1>
               <p className="text-sm text-panel-muted">{user.email}</p>
               <div className="flex flex-wrap items-center gap-2 pt-1">
-                <LevelBadge lessonsCompleted={lessonsCompleted} />
+                <LevelBadge totalMastered={stats.totalMasteredAll} />
                 <span className="inline-flex items-center gap-1 rounded-full bg-panel-foreground/12 px-2.5 py-1 text-xs font-medium text-panel-foreground">
                   <CalendarDays className="size-3.5" />
                   Joined {formatDate(user.joinedAt)}
@@ -773,7 +640,7 @@ export default function ProfilePage() {
       {/* Admin Section - Only for admins */}
       {user?.role === "admin" && (
         <div className="rounded-2xl border border-primary/20 bg-primary/5 p-6 shadow-sm">
-          <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
+          <h2 className="mb-4 flex items-center gap-2 text-lg font-bold">
             <ShieldCheck className="size-5 text-primary" />
             Administrative Actions
           </h2>
@@ -792,22 +659,6 @@ export default function ProfilePage() {
                 Manage users, edit lessons, and monitor application data.
               </p>
             </div>
-            <div className="text-primary opacity-0 -translate-x-2 transition-all group-hover:opacity-100 group-hover:translate-x-0">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M5 12h14" />
-                <path d="m12 5 7 7-7 7" />
-              </svg>
-            </div>
           </Link>
         </div>
       )}
@@ -815,7 +666,52 @@ export default function ProfilePage() {
       {/* ── Edit inline form ── */}
       {editing && <EditProfileInline onDone={() => setEditing(false)} />}
 
-      {/* ── Stats ── */}
+      {/* ── Language Filter Bar for Stats ── */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="text-base font-semibold text-foreground">
+            Learning Statistics
+          </h2>
+          <p className="text-xs text-muted-foreground">
+            Inspect your progress across all languages or focus on one.
+          </p>
+        </div>
+        <div
+          role="group"
+          aria-label="Filter statistics by language"
+          className="inline-flex flex-wrap items-center gap-1 rounded-xl border border-border bg-card p-1"
+        >
+          {(
+            [
+              { id: "all", label: "All", flag: "🌐" },
+              { id: "es", label: "Spanish", flag: "🇪🇸" },
+              { id: "fr", label: "French", flag: "🇫🇷" },
+              { id: "ja", label: "Japanese", flag: "🇯🇵" },
+            ] as const
+          ).map((opt) => {
+            const active = statsFilter === opt.id;
+            return (
+              <button
+                key={opt.id}
+                type="button"
+                onClick={() => setStatsFilter(opt.id)}
+                aria-pressed={active}
+                className={cn(
+                  "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors",
+                  active
+                    ? "bg-primary text-primary-foreground shadow-e1"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <span aria-hidden="true">{opt.flag}</span>
+                <span>{opt.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ── Core Metrics ── */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard
           icon={Flame}
@@ -825,58 +721,167 @@ export default function ProfilePage() {
           accent="bg-shu"
         />
         <StatCard
-          icon={BookOpen}
-          label="Words Learned"
-          value={wordsLearned}
-          sublabel="vocabulary items"
+          icon={Layers}
+          label="Cards Studied"
+          value={stats.totalCards}
+          sublabel={`${stats.learning} learning`}
           accent="bg-primary"
         />
         <StatCard
-          icon={Languages}
-          label="Verbs Mastered"
-          value={verbsMastered}
-          sublabel="verb forms"
+          icon={CheckCircle2}
+          label="Mastered"
+          value={stats.mastered}
+          sublabel="mature SRS cards"
           accent="bg-matsuba"
         />
         <StatCard
-          icon={GraduationCap}
-          label="Avg. Quiz Score"
-          value={quizScores.length > 0 ? `${avgScore}%` : "—"}
-          sublabel={`${quizScores.length} quizzes`}
+          icon={Target}
+          label="Retention"
+          value={stats.totalReviews > 0 ? `${stats.retention}%` : "—"}
+          sublabel={`${stats.totalReviews} reviews`}
           accent="bg-ai"
         />
       </div>
 
-      {/* ── Charts row ── */}
-      <div className="grid gap-4 lg:grid-cols-2">
-        <QuizChart scores={quizScores.map((q) => q.score)} />
-        <VocabBreakdown vocabStatus={vocabStatus} />
+      {/* ── Per-Language Breakdown ── */}
+      <div className="grid gap-3 md:grid-cols-3">
+        {stats.perLanguage
+          .filter((l) => statsFilter === "all" || statsFilter === l.lang)
+          .map((l) => {
+            const meta = LANG_META[l.lang];
+            return (
+              <div
+                key={l.lang}
+                className="rounded-2xl border border-border bg-card p-5"
+              >
+                <div className="mb-3 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg" aria-hidden="true">
+                      {meta.flag}
+                    </span>
+                    <h3 className="font-semibold text-foreground">
+                      {meta.label}
+                    </h3>
+                  </div>
+                  <span className="text-xs font-medium text-muted-foreground">
+                    {l.mastered} mastered
+                  </span>
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div className="rounded-lg bg-card-muted/60 p-2">
+                    <p data-numeric className="text-base font-semibold text-foreground">
+                      {l.vocab}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">Vocab</p>
+                  </div>
+                  <div className="rounded-lg bg-card-muted/60 p-2">
+                    <p data-numeric className="text-base font-semibold text-foreground">
+                      {l.verbs}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">Verbs</p>
+                  </div>
+                  <div className="rounded-lg bg-card-muted/60 p-2">
+                    <p data-numeric className="text-base font-semibold text-foreground">
+                      {l.grammar}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">Grammar</p>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
       </div>
 
-      {/* ── Lessons progress ── */}
-      <div className="rounded-2xl border border-border bg-card p-5">
-        <div className="mb-3 flex items-center gap-2">
-          <GraduationCap className="size-5 text-primary" />
-          <h3 className="font-semibold text-foreground">Lesson Progress</h3>
-          <span className="ml-auto text-xs text-muted-foreground">
-            {lessonsCompleted} lessons completed
-          </span>
-        </div>
-        {/* Simple milestone track */}
-        <div className="relative">
-          <div className="h-3 overflow-hidden rounded-full bg-secondary">
-            <div
-              className="h-full rounded-full bg-linear-to-r from-primary to-primary/70 transition-all duration-700"
-              style={{
-                width: `${Math.min((lessonsCompleted / 50) * 100, 100)}%`,
-              }}
-            />
+      {/* ── 7-Day Review Activity + Study Breakdown ── */}
+      <div className="grid gap-4 lg:grid-cols-2">
+        <div className="rounded-2xl border border-border bg-card p-5">
+          <div className="mb-4 flex items-center gap-2">
+            <TrendingUp className="size-5 text-primary" />
+            <h3 className="font-semibold text-foreground">
+              7-Day Review Activity
+            </h3>
+            <span className="ml-auto text-xs text-muted-foreground">
+              All languages
+            </span>
           </div>
-          <div className="mt-2 flex justify-between text-[11px] text-muted-foreground">
-            <span>0</span>
-            <span>Beginner · 10</span>
-            <span>Elementary · 25</span>
-            <span>50+</span>
+          <ResponsiveContainer width="100%" height={180}>
+            <BarChart
+              data={stats.days}
+              margin={{ top: 4, right: 4, bottom: 0, left: -24 }}
+            >
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke="var(--color-border)"
+                vertical={false}
+              />
+              <XAxis
+                dataKey="day"
+                tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }}
+                axisLine={false}
+                tickLine={false}
+              />
+              <YAxis
+                allowDecimals={false}
+                tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }}
+                axisLine={false}
+                tickLine={false}
+              />
+              <Tooltip
+                contentStyle={{
+                  background: "var(--color-card)",
+                  border: "1px solid var(--color-border)",
+                  borderRadius: "8px",
+                  fontSize: "12px",
+                }}
+              />
+              <Bar
+                dataKey="reviews"
+                fill="var(--color-primary)"
+                radius={[6, 6, 0, 0]}
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        <div className="rounded-2xl border border-border bg-card p-5">
+          <div className="mb-4 flex items-center gap-2">
+            <Sparkles className="size-5 text-primary" />
+            <h3 className="font-semibold text-foreground">
+              Deck & Quiz Summary
+            </h3>
+          </div>
+          <div className="space-y-3">
+            {[
+              { label: "Vocabulary Cards", count: stats.byDeck.vocab, icon: BookOpen },
+              { label: "Verb Conjugations", count: stats.byDeck.verbs, icon: Languages },
+              { label: "Grammar Patterns", count: stats.byDeck.grammar, icon: GraduationCap },
+            ].map((row) => (
+              <div
+                key={row.label}
+                className="flex items-center justify-between rounded-xl border border-border/70 bg-card-muted/40 px-3.5 py-2.5"
+              >
+                <div className="flex items-center gap-2.5">
+                  <row.icon className="size-4 text-primary" />
+                  <span className="text-sm font-medium text-foreground">
+                    {row.label}
+                  </span>
+                </div>
+                <span data-numeric className="text-sm font-semibold text-foreground">
+                  {row.count}
+                </span>
+              </div>
+            ))}
+            <div className="flex items-center justify-between rounded-xl border border-border/70 bg-card-muted/40 px-3.5 py-2.5">
+              <div className="flex items-center gap-2.5">
+                <TrendingUp className="size-4 text-ai" />
+                <span className="text-sm font-medium text-foreground">
+                  Quiz Average ({quizScores.length} taken)
+                </span>
+              </div>
+              <span data-numeric className="text-sm font-semibold text-foreground">
+                {quizScores.length > 0 ? `${avgScore}%` : "—"}
+              </span>
+            </div>
           </div>
         </div>
       </div>
