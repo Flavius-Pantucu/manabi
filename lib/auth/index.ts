@@ -27,6 +27,29 @@ const DAY = 60 * 60 * 24;
 export const auth = betterAuth({
   appName: "Manabi",
   baseURL: serverBaseUrl(),
+  trustedOrigins: (request) => {
+    const origins = new Set<string>();
+    const base = serverBaseUrl();
+    if (base) origins.add(base);
+    if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
+      origins.add(`https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`);
+    }
+    if (process.env.VERCEL_BRANCH_URL) {
+      origins.add(`https://${process.env.VERCEL_BRANCH_URL}`);
+    }
+    if (process.env.VERCEL_URL) {
+      origins.add(`https://${process.env.VERCEL_URL}`);
+    }
+    const origin = request?.headers.get("origin");
+    if (
+      origin &&
+      (/^https:\/\/[a-z0-9-]+\.vercel\.app$/i.test(origin) ||
+        /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin))
+    ) {
+      origins.add(origin);
+    }
+    return [...origins];
+  },
   secret: process.env.BETTER_AUTH_SECRET,
 
   database: drizzleAdapter(db, {

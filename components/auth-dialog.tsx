@@ -366,7 +366,7 @@ function RegisterForm({ onSuccess }: { onSuccess: () => void }) {
           message:
             /network|fetch|offline/i.test(message)
               ? "Couldn't reach the server. Check your connection and try again."
-              : "We couldn't create your account just now. Try again.",
+              : message || "We couldn't create your account just now. Try again.",
         });
       }
     }

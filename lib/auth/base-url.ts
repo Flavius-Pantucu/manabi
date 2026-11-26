@@ -43,6 +43,9 @@ export function serverBaseUrl(): string | undefined {
  * here would yield `undefined` in the bundle.
  */
 export function clientBaseUrl(): string | undefined {
+  if (typeof window !== "undefined") {
+    return window.location.origin;
+  }
   return (
     absolute(process.env.NEXT_PUBLIC_APP_URL) ??
     absolute(process.env.NEXT_PUBLIC_VERCEL_URL)
