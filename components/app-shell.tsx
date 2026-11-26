@@ -57,40 +57,42 @@ import { ManabiLogo } from "@/components/manabi-mark";
 interface NavItem {
   href: string;
   label: string;
-  labelJp: string;
-  labelEs: string;
-  labelFr: string;
   icon: LucideIcon;
   adminOnly?: boolean;
   jaOnly?: boolean;
 }
 
-const navItems: NavItem[] = [
+interface NavGroup {
+  title: string;
+  items: NavItem[];
+}
+
+const navGroups: NavGroup[] = [
   {
-    href: "/",
-    label: "Dashboard",
-    labelJp: "ダッシュボード",
-    labelEs: "Tablero",
-    labelFr: "Tableau",
-    icon: LayoutDashboard,
+    title: "Overview",
+    items: [
+      { href: "/", label: "Dashboard", icon: LayoutDashboard },
+      { href: "/review", label: "Review", icon: Repeat },
+      { href: "/progress", label: "Progress", icon: TrendingUp },
+    ],
   },
-  { href: "/review", label: "Review", labelJp: "復習", labelEs: "Repaso", labelFr: "Révision", icon: Repeat },
-  { href: "/kana", label: "Kana", labelJp: "かな", labelEs: "Kana", labelFr: "Kana", icon: Shapes, jaOnly: true },
-  { href: "/verbs", label: "Verbs", labelJp: "動詞", labelEs: "Verbos", labelFr: "Verbes", icon: Languages },
-  { href: "/grammar", label: "Grammar", labelJp: "文法", labelEs: "Gramática", labelFr: "Grammaire", icon: BookOpen },
-  { href: "/vocabulary", label: "Vocab", labelJp: "語彙", labelEs: "Vocabulario", labelFr: "Vocabulaire", icon: BookText },
-  { href: "/kanji", label: "Kanji", labelJp: "漢字", labelEs: "Kanji", labelFr: "Kanji", icon: PenLine, jaOnly: true },
-  { href: "/reading", label: "Reading", labelJp: "読解", labelEs: "Lectura", labelFr: "Lecture", icon: FileText },
-  { href: "/quiz", label: "Quiz", labelJp: "クイズ", labelEs: "Examen", labelFr: "Examen", icon: HelpCircle },
-  { href: "/progress", label: "Progress", labelJp: "統計", labelEs: "Progreso", labelFr: "Progrès", icon: TrendingUp },
   {
-    href: "/admin",
-    label: "Admin",
-    labelJp: "管理",
-    labelEs: "Admin",
-    labelFr: "Admin",
-    icon: ShieldCheck,
-    adminOnly: true,
+    title: "Study",
+    items: [
+      { href: "/vocabulary", label: "Vocabulary", icon: BookText },
+      { href: "/grammar", label: "Grammar", icon: BookOpen },
+      { href: "/verbs", label: "Verbs", icon: Languages },
+      { href: "/reading", label: "Reading", icon: FileText },
+      { href: "/kana", label: "Kana", icon: Shapes, jaOnly: true },
+      { href: "/kanji", label: "Kanji", icon: PenLine, jaOnly: true },
+    ],
+  },
+  {
+    title: "Practice",
+    items: [
+      { href: "/quiz", label: "Quiz", icon: HelpCircle },
+      { href: "/admin", label: "Admin", icon: ShieldCheck, adminOnly: true },
+    ],
   },
 ];
 
@@ -120,25 +122,20 @@ function SidebarAuthButtons({
   onRegister: () => void;
 }) {
   return (
-    <div className="flex flex-col gap-2">
-      <h2 className="px-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-        Account
-      </h2>
-      <div className="flex gap-2">
-        <button
-          onClick={onLogin}
-          className="flex min-h-10 flex-1 items-center justify-center gap-2 rounded-lg border border-input px-3 py-2 text-sm font-medium text-foreground transition-colors duration-(--dur-1) hover:bg-accent hover:text-accent-foreground"
-        >
-          <LogIn className="size-4" />
-          Log in
-        </button>
-        <button
-          onClick={onRegister}
-          className="flex min-h-10 flex-1 items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground shadow-e1 transition-colors duration-(--dur-1) hover:bg-primary-hover"
-        >
-          Sign up
-        </button>
-      </div>
+    <div className="flex gap-2">
+      <button
+        onClick={onLogin}
+        className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg border border-input px-3 text-xs font-medium text-foreground transition-colors duration-(--dur-1) hover:bg-accent hover:text-accent-foreground"
+      >
+        <LogIn className="size-3.5" />
+        Log in
+      </button>
+      <button
+        onClick={onRegister}
+        className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg bg-primary px-3 text-xs font-semibold text-primary-foreground shadow-e1 transition-colors duration-(--dur-1) hover:bg-primary-hover"
+      >
+        Sign up
+      </button>
     </div>
   );
 }
@@ -294,101 +291,74 @@ function SidebarBody({
   return (
     <>
       <nav aria-label="Study areas" className="flex-1 overflow-y-auto px-3 py-4">
-        <ul className="flex flex-col gap-1">
-          {navItems.map((item) => {
-            if (item.adminOnly && user?.role !== "admin") return null;
-            if (item.jaOnly && language !== "ja") return null;
-            const isActive = pathname === item.href;
+        <div className="flex flex-col gap-5">
+          {navGroups.map((group) => {
+            const visibleItems = group.items.filter((item) => {
+              if (item.adminOnly && user?.role !== "admin") return false;
+              if (item.jaOnly && language !== "ja") return false;
+              return true;
+            });
+            if (visibleItems.length === 0) return null;
+
             return (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  onClick={onNavigate}
-                  aria-current={isActive ? "page" : undefined}
-                  className={cn(
-                    "group relative flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium",
-                    "transition-colors duration-(--dur-1)",
-                    isActive
-                      ? "bg-primary-tint text-secondary-foreground"
-                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
-                  )}
-                >
-                  {isActive && (
-                    <span
-                      aria-hidden="true"
-                      className="absolute left-0 h-5 w-[3px] rounded-r-full bg-primary"
-                    />
-                  )}
-                  <item.icon
-                    className={cn(
-                      "size-5 shrink-0",
-                      isActive ? "text-primary" : "text-muted-foreground",
-                    )}
-                  />
-                  <span>{item.label}</span>
-                  <span
-                    lang={language}
-                    className={cn(
-                      "ml-auto text-xs",
-                      language === "ja" && "font-jp",
-                      isActive
-                        ? "text-secondary-foreground"
-                        : "text-muted-foreground",
-                    )}
-                  >
-                    {language === "es"
-                      ? item.labelEs
-                      : language === "fr"
-                        ? item.labelFr
-                        : item.labelJp}
-                  </span>
-                </Link>
-              </li>
+              <div key={group.title} className="flex flex-col gap-1">
+                <p className="px-2.5 pb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/75">
+                  {group.title}
+                </p>
+                <ul className="flex flex-col gap-0.5">
+                  {visibleItems.map((item) => {
+                    const isActive = pathname === item.href;
+                    return (
+                      <li key={item.href}>
+                        <Link
+                          href={item.href}
+                          onClick={onNavigate}
+                          aria-current={isActive ? "page" : undefined}
+                          className={cn(
+                            "group relative flex min-h-9.5 items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-sm font-medium",
+                            "transition-colors duration-(--dur-1)",
+                            isActive
+                              ? "bg-primary-tint text-secondary-foreground"
+                              : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+                          )}
+                        >
+                          {isActive && (
+                            <span
+                              aria-hidden="true"
+                              className="absolute left-0 h-4.5 w-[3px] rounded-r-full bg-primary"
+                            />
+                          )}
+                          <item.icon
+                            className={cn(
+                              "size-4 shrink-0",
+                              isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground",
+                            )}
+                          />
+                          <span>{item.label}</span>
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
             );
           })}
-        </ul>
+        </div>
       </nav>
 
-      {/* Bottom section */}
-      <div className="flex flex-col gap-2 border-t border-border px-3 py-3">
-        {!isLoading &&
-          (user ? (
-            <SidebarUserCard onNavigate={onNavigate} />
-          ) : (
-            <SidebarAuthButtons onLogin={onLogin} onRegister={onRegister} />
-          ))}
-
-        <button
-          onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-          className="flex min-h-11 w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors duration-(--dur-1) hover:bg-accent hover:text-accent-foreground"
-        >
-          {mounted ? (
-            theme === "dark" ? (
-              <Sun className="size-5" />
-            ) : (
-              <Moon className="size-5" />
-            )
-          ) : (
-            <span className="size-5" />
-          )}
-          {/* Rendered before hydration as an empty string would collapse the
-              row; reserve the label's line instead. */}
-          <span>
-            {mounted ? (theme === "dark" ? "Light mode" : "Dark mode") : " "}
-          </span>
-        </button>
-
-        <div className="mt-1 flex flex-col gap-3 border-t border-border px-3 pt-4">
-          <h2 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-            Study preferences
-          </h2>
+      {/* Bottom section: Preferences + Account */}
+      <div className="flex flex-col gap-3 border-t border-border px-3 py-3">
+        <div className="flex flex-col gap-2 px-1">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/75">
+            Preferences
+          </p>
           {language === "ja" && (
-            <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center justify-between gap-2">
               <Label
                 htmlFor={`furigana-toggle-${onNavigate ? "drawer" : "rail"}`}
                 className="flex cursor-pointer items-center gap-2 text-xs font-medium text-foreground"
               >
-                <Type className="size-4 text-muted-foreground" />
+                <Type className="size-3.5 text-muted-foreground" />
                 Furigana
               </Label>
               <Switch
@@ -398,12 +368,12 @@ function SidebarBody({
               />
             </div>
           )}
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center justify-between gap-2">
             <Label
               htmlFor={`autoplay-toggle-${onNavigate ? "drawer" : "rail"}`}
               className="flex cursor-pointer items-center gap-2 text-xs font-medium text-foreground"
             >
-              <Volume2 className="size-4 text-muted-foreground" />
+              <Volume2 className="size-3.5 text-muted-foreground" />
               Auto-play audio
             </Label>
             <Switch
@@ -412,6 +382,33 @@ function SidebarBody({
               onCheckedChange={toggleAutoPlay}
             />
           </div>
+          <div className="flex items-center justify-between gap-2">
+            <Label
+              htmlFor={`theme-toggle-${onNavigate ? "drawer" : "rail"}`}
+              className="flex cursor-pointer items-center gap-2 text-xs font-medium text-foreground"
+            >
+              {mounted && theme === "dark" ? (
+                <Moon className="size-3.5 text-muted-foreground" />
+              ) : (
+                <Sun className="size-3.5 text-muted-foreground" />
+              )}
+              Dark mode
+            </Label>
+            <Switch
+              id={`theme-toggle-${onNavigate ? "drawer" : "rail"}`}
+              checked={mounted ? theme === "dark" : false}
+              onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")}
+            />
+          </div>
+        </div>
+
+        <div className="border-t border-border pt-3">
+          {!isLoading &&
+            (user ? (
+              <SidebarUserCard onNavigate={onNavigate} />
+            ) : (
+              <SidebarAuthButtons onLogin={onLogin} onRegister={onRegister} />
+            ))}
         </div>
       </div>
     </>
