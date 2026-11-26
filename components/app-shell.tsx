@@ -702,18 +702,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* Global Command Menu (⌘K) */}
       <CommandMenu />
 
-      {/* Bottom navigation dock — 90% width on mobile, and on desktop when sidebar is collapsed */}
+      {/* Bottom navigation dock — iPhone-style rounded pill hugging the bottom on mobile, and on desktop when sidebar is collapsed */}
       <nav
         aria-label="Primary"
         className={cn(
-          "safe-bottom fixed bottom-3 left-1/2 z-50 w-[90vw] -translate-x-1/2 md:bottom-6 md:w-max md:max-w-[calc(100vw-2rem)]",
+          "fixed bottom-[max(0.375rem,env(safe-area-inset-bottom))] left-1/2 z-50 w-[92vw] -translate-x-1/2 md:bottom-6 md:w-max md:max-w-[calc(100vw-2rem)]",
           "transition-[opacity,transform] duration-(--dur-3) ease-(--ease-out-expo)",
           isSidebarCollapsed
             ? "pointer-events-auto translate-y-0 scale-100 opacity-100"
             : "pointer-events-auto translate-y-0 scale-100 opacity-100 md:pointer-events-none md:translate-y-6 md:scale-95 md:opacity-0",
         )}
       >
-        <div className="glass-strong flex w-full items-center justify-around gap-0.5 rounded-2xl border p-1.5 md:w-auto md:justify-center md:gap-1">
+        <div className="glass-strong flex w-full items-center justify-around gap-0.5 rounded-[28px] border p-1.5 md:w-auto md:justify-center md:gap-1 md:rounded-2xl">
           <button
             onClick={() => setIsSidebarCollapsed(false)}
             className="hidden min-w-13 flex-col items-center justify-center gap-1 rounded-xl px-2.5 py-1.5 text-muted-foreground transition-colors duration-(--dur-1) hover:bg-accent hover:text-accent-foreground md:flex"
@@ -738,7 +738,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 href={item.href}
                 aria-current={isActive ? "page" : undefined}
                 className={cn(
-                  "flex min-w-12 flex-col items-center justify-center gap-1 rounded-xl px-2 py-1.5 sm:min-w-13 sm:px-2.5",
+                  "flex min-w-12 flex-col items-center justify-center gap-1 rounded-[20px] px-2.5 py-1.5 sm:min-w-13 md:rounded-xl",
                   "transition-colors duration-(--dur-1)",
                   isActive
                     ? "bg-primary-tint text-primary"
