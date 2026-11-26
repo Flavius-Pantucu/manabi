@@ -719,11 +719,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* Global Command Menu (⌘K) */}
       <CommandMenu />
 
-      {/* Bottom navigation dock — iPhone-style rounded pill hugging the bottom edge on mobile, and on desktop when sidebar is collapsed */}
+      {/* Bottom navigation dock — equal 8px (2) inset on left, right, and bottom on mobile; centered on desktop when sidebar is collapsed */}
       <nav
         aria-label="Primary"
         className={cn(
-          "fixed bottom-1.5 left-1/2 z-50 w-[92vw] -translate-x-1/2 md:bottom-6 md:w-max md:max-w-[calc(100vw-2rem)]",
+          "fixed bottom-2 left-2 right-2 z-50 md:bottom-6 md:left-1/2 md:right-auto md:w-max md:max-w-[calc(100vw-2rem)] md:-translate-x-1/2",
           "transition-[opacity,transform] duration-(--dur-3) ease-(--ease-out-expo)",
           isSidebarCollapsed
             ? "pointer-events-auto translate-y-0 scale-100 opacity-100"
