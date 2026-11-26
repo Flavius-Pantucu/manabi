@@ -48,7 +48,7 @@ export const metadata: Metadata = {
   manifest: "/manifest.json",
   icons: {
     icon: [{ url: "/icon.png?v=3", type: "image/png", sizes: "192x192" }],
-    apple: [{ url: "/apple-touch-icon.png?v=3", type: "image/png", sizes: "180x180" }],
+    apple: [{ url: "/apple-touch-icon.png?v=4", type: "image/png", sizes: "180x180" }],
   },
   openGraph: {
     type: "website",
