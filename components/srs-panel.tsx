@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { useSrs } from "@/hooks/use-srs";
 import { nextStep, kanaProgress } from "@/lib/srs/curriculum";
+import { useLanguage } from "@/lib/language-context";
 
 /**
  * The daily call to action.
@@ -16,6 +17,7 @@ import { nextStep, kanaProgress } from "@/lib/srs/curriculum";
  * beginner to kana rather than dropping them into N5 kanji.
  */
 export function SrsPanel() {
+  const { language } = useLanguage();
   const { state, items, contentLoading, stats } = useSrs();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
@@ -41,16 +43,17 @@ export function SrsPanel() {
             </span>
             <div>
               <p className="text-base font-semibold text-foreground">
-                Start with hiragana
+                {language === "es" ? "Start with Spanish vocabulary" : "Start with hiragana"}
               </p>
               <p className="mt-0.5 max-w-md text-sm text-secondary-foreground">
-                Japanese is written in 104 syllables. Learn those first and
-                everything after it becomes readable.
+                {language === "es"
+                  ? "Build your core A1 vocabulary and essential verbs first with spaced repetition."
+                  : "Japanese is written in 104 syllables. Learn those first and everything after it becomes readable."}
               </p>
             </div>
           </div>
           <Link
-            href="/kana"
+            href={language === "es" ? "/vocabulary" : "/kana"}
             className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-lg bg-primary px-5 text-sm font-semibold text-primary-foreground shadow-e1 transition-colors duration-(--dur-1) hover:bg-primary-hover"
           >
             Begin <ArrowRight className="size-4" />
@@ -96,7 +99,7 @@ export function SrsPanel() {
                   {s.newRemaining > 0 && (
                     <> · <span data-numeric>{s.newRemaining}</span> new</>
                   )}
-                  {kana.ratio < 0.5 && <> · kana still in progress</>}
+                  {language === "ja" && kana.ratio < 0.5 && <> · kana still in progress</>}
                 </p>
               </>
             )}

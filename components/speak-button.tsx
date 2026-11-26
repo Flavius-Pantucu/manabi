@@ -4,13 +4,10 @@ import { cn } from "@/lib/utils";
 import { Volume2, VolumeX } from "lucide-react";
 import { useVoiceStatus } from "@/hooks/use-voice-status";
 import { speak, VOICE_HELP } from "@/lib/speech";
+import { useLanguage } from "@/lib/language-context";
 
 /**
  * One audio control for the whole app.
- *
- * When no Japanese voice exists the button is disabled and says why, rather
- * than looking live and doing nothing — which is what a plain `onClick={speak}`
- * gives you on any machine without a ja-JP voice installed.
  */
 export function SpeakButton({
   text,
@@ -23,8 +20,9 @@ export function SpeakButton({
   className?: string;
   label?: string;
 }) {
+  const { language } = useLanguage();
   const status = useVoiceStatus();
-  const unavailable = status === "none" || status === "unsupported";
+  const unavailable = language === "ja" && (status === "none" || status === "unsupported");
   const box = size === "sm" ? "size-8" : "size-9";
   const icon = size === "sm" ? "size-3.5" : "size-4";
 
@@ -33,7 +31,7 @@ export function SpeakButton({
       type="button"
       onClick={(e) => {
         e.stopPropagation();
-        if (!unavailable) speak(text);
+        if (!unavailable) speak(text, { lang: language });
       }}
       disabled={unavailable}
       title={unavailable ? VOICE_HELP[status] : undefined}

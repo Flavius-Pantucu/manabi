@@ -474,44 +474,14 @@ function RegisterForm({ onSuccess }: { onSuccess: () => void }) {
  */
 function AuthPanel() {
   return (
-    <div className="relative -mx-6 -mt-6 mb-5 overflow-hidden border-b border-border px-6 pb-7 pt-8 text-center">
-      <div aria-hidden="true" className="absolute inset-0">
-        {/* Overscanned so that `--pattern-blur` can be raised without the
-            layer's own edges fading in from the panel border. It is 0 by
-            default — blur is what killed the linework the first time. */}
-        <div
-          className="absolute inset-[-8%]"
-          style={{
-            backgroundImage: "url('/images/cute-pattern.png')",
-            backgroundSize: "280px",
-            opacity: "var(--pattern-photo)",
-            filter: "blur(var(--pattern-blur))",
-          }}
-        />
-        <div
-          className="absolute inset-0"
-          style={{ background: "var(--pattern-scrim)" }}
-        />
-        {/* Gloss. Theme-aware through the token: a white sweep on light, a
-            barely-there lift on dark. */}
-        <div
-          className="absolute inset-x-0 top-0 h-2/3"
-          style={{
-            background:
-              "linear-gradient(180deg, var(--glass-highlight) 0%, transparent 100%)",
-            opacity: 0.5,
-          }}
-        />
-        <div
-          className="absolute inset-x-0 top-0 h-px"
-          style={{ background: "var(--glass-highlight)" }}
-        />
-      </div>
-
-      <div className="relative">
-        <ManabiMark className="mx-auto size-12" />
-        <p className="mt-3 text-2xl font-semibold tracking-tight text-foreground">
+    <div className="relative -mx-6 -mt-6 mb-5 overflow-hidden border-b border-border bg-linear-to-b from-primary/8 via-primary/3 to-transparent px-6 pb-6 pt-7 text-center">
+      <div className="relative flex flex-col items-center">
+        <ManabiMark className="size-12 rounded-xl shadow-e1" />
+        <p className="mt-3 text-xl font-semibold tracking-tight text-foreground">
           Manabi
+        </p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Sync your study progress across devices
         </p>
       </div>
     </div>

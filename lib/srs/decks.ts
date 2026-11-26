@@ -16,7 +16,7 @@
 
 import { kana, glyph, CONFUSABLE, type Kana } from "@/lib/data/kana";
 import type {
-  GrammarPoint, Kanji, Level, LevelContent, Verb, Vocab,
+  GrammarPoint, Kanji, Language, Level, LevelContent, Verb, Vocab,
 } from "@/lib/content/types";
 
 export type DeckId =
@@ -31,7 +31,7 @@ export interface ReviewItem {
   mode: ReviewMode;
   level?: Level;
   prompt: string;
-  promptLang: "ja" | "en";
+  promptLang: "ja" | "es" | "en";
   instruction: string;
   answer: string;
   answerReading?: string;
@@ -125,14 +125,16 @@ export function kanaDeckItems(): ReviewItem[] {
 
 // ── Loaded content → cards ──────────────────────────────────────────────────
 
-function vocabItems(rows: Vocab[], meanings: string[]): ReviewItem[] {
+function vocabItems(rows: Vocab[], meanings: string[], language: Language = "ja"): ReviewItem[] {
   const out: ReviewItem[] = [];
+  const pLang = language === "es" ? "es" : "ja";
+  const langLabel = language === "es" ? "Spanish" : "Japanese";
   for (const w of rows) {
     // Recognition: see the word, know what it means.
     out.push({
       cardId: `${w.id}:meaning`,
       deck: "vocab", mode: "choice", level: w.level,
-      prompt: w.word, promptLang: "ja",
+      prompt: w.word, promptLang: pLang,
       instruction: "What does this mean?",
       answer: w.meaning, answerReading: w.reading,
       notes: w.altMeanings?.length ? `also: ${w.altMeanings.join(", ")}` : undefined,
@@ -146,9 +148,9 @@ function vocabItems(rows: Vocab[], meanings: string[]): ReviewItem[] {
       cardId: `${w.id}:recall`,
       deck: "vocab", mode: "recall", level: w.level,
       prompt: w.meaning, promptLang: "en",
-      instruction: "Type it in Japanese",
+      instruction: `Type it in ${langLabel}`,
       answer: w.word, answerReading: w.reading,
-      accepts: [w.reading, w.word].filter(Boolean),
+      accepts: language === "es" ? [w.word] : [w.reading, w.word].filter(Boolean),
       speak: w.word, href: "/vocabulary",
     });
   }
@@ -201,26 +203,38 @@ export const VERB_FORMS = [
   { key: "conditional_ba", label: "ば-conditional" },
 ] as const;
 
-function verbItems(rows: Verb[], meanings: string[]): ReviewItem[] {
+export const SPANISH_VERB_FORMS = [
+  { key: "presente_yo", label: "present (yo)" },
+  { key: "presente_tu", label: "present (tú)" },
+  { key: "presente_el", label: "present (él/ella)" },
+  { key: "preterito_yo", label: "preterite (yo)" },
+  { key: "imperfecto_yo", label: "imperfect (yo)" },
+  { key: "futuro_yo", label: "future (yo)" },
+  { key: "subjuntivo_yo", label: "subjunctive (yo)" },
+] as const;
+
+function verbItems(rows: Verb[], meanings: string[], language: Language = "ja"): ReviewItem[] {
   const out: ReviewItem[] = [];
+  const pLang = language === "es" ? "es" : "ja";
+  const forms = language === "es" ? SPANISH_VERB_FORMS : VERB_FORMS;
   for (const v of rows) {
     out.push({
       cardId: `${v.id}:meaning`,
       deck: "verbs", mode: "choice", level: v.level,
-      prompt: v.dictionary, promptLang: "ja",
+      prompt: v.dictionary, promptLang: pLang,
       instruction: "What does this verb mean?",
       answer: v.meaning, answerReading: v.reading, notes: v.group,
       accepts: [v.meaning],
       choices: [v.meaning, ...pickDistractors(meanings, v.meaning, v.id, 3)],
       speak: v.dictionary, href: "/verbs",
     });
-    for (const f of VERB_FORMS) {
+    for (const f of forms) {
       const target = v.conjugations[f.key];
       if (!target) continue;
       out.push({
         cardId: `${v.id}:${f.key}`,
         deck: "verbs", mode: "recall", level: v.level,
-        prompt: v.dictionary, promptLang: "ja",
+        prompt: v.dictionary, promptLang: pLang,
         instruction: `Conjugate to the ${f.label}`,
         answer: target, notes: `${v.meaning} · ${v.group}`,
         accepts: [target], speak: target, href: "/verbs",
@@ -230,11 +244,12 @@ function verbItems(rows: Verb[], meanings: string[]): ReviewItem[] {
   return out;
 }
 
-function grammarItems(rows: GrammarPoint[], meanings: string[]): ReviewItem[] {
+function grammarItems(rows: GrammarPoint[], meanings: string[], language: Language = "ja"): ReviewItem[] {
+  const pLang = language === "es" ? "es" : "ja";
   return rows.map((g) => ({
     cardId: `${g.id}:meaning`,
     deck: "grammar" as DeckId, mode: "choice" as ReviewMode, level: g.level,
-    prompt: g.pattern, promptLang: "ja" as const,
+    prompt: g.pattern, promptLang: pLang,
     instruction: "What does this pattern do?",
     answer: g.meaning, notes: g.formation,
     accepts: [g.meaning],
@@ -247,18 +262,18 @@ function grammarItems(rows: GrammarPoint[], meanings: string[]): ReviewItem[] {
  * Build every card for the loaded levels. Distractor pools are drawn from the
  * whole loaded set so options stay plausible rather than absurd.
  */
-export function buildItems(levels: LevelContent[]): ReviewItem[] {
+export function buildItems(levels: LevelContent[], language: Language = "ja"): ReviewItem[] {
   const vocab = levels.flatMap((l) => l.vocab);
   const kanji = levels.flatMap((l) => l.kanji);
   const verbs = levels.flatMap((l) => l.verbs);
   const grammar = levels.flatMap((l) => l.grammar);
 
   return [
-    ...kanaDeckItems(),
-    ...vocabItems(vocab, vocab.map((v) => v.meaning)),
-    ...kanjiItems(kanji, kanji.map((k) => k.meanings[0] ?? k.character)),
-    ...verbItems(verbs, verbs.map((v) => v.meaning)),
-    ...grammarItems(grammar, grammar.map((g) => g.meaning)),
+    ...(language === "ja" ? kanaDeckItems() : []),
+    ...vocabItems(vocab, vocab.map((v) => v.meaning), language),
+    ...(language === "ja" ? kanjiItems(kanji, kanji.map((k) => k.meanings[0] ?? k.character)) : []),
+    ...verbItems(verbs, verbs.map((v) => v.meaning), language),
+    ...grammarItems(grammar, grammar.map((g) => g.meaning), language),
   ];
 }
 

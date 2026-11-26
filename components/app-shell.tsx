@@ -32,6 +32,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { useLearning } from "@/lib/learning-context";
+import { useLanguage } from "@/lib/language-context";
 import { AuthDialog, useAuthDialog } from "@/components/auth-dialog";
 import { createContext, useContext } from "react";
 import { Switch } from "@/components/ui/switch";
@@ -43,9 +44,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { useParallax } from "@/hooks/use-parallax";
 import { useIsMobile } from "@/hooks/use-mobile";
-import Image from "next/image";
 import { CommandMenu } from "@/components/command-menu";
 import { ManabiLogo } from "@/components/manabi-mark";
 
@@ -53,8 +52,10 @@ interface NavItem {
   href: string;
   label: string;
   labelJp: string;
+  labelEs: string;
   icon: LucideIcon;
   adminOnly?: boolean;
+  jaOnly?: boolean;
 }
 
 const navItems: NavItem[] = [
@@ -62,44 +63,40 @@ const navItems: NavItem[] = [
     href: "/",
     label: "Dashboard",
     labelJp: "ダッシュボード",
+    labelEs: "Tablero",
     icon: LayoutDashboard,
   },
-  { href: "/review", label: "Review", labelJp: "復習", icon: Repeat },
-  { href: "/kana", label: "Kana", labelJp: "かな", icon: Shapes },
-  { href: "/verbs", label: "Verbs", labelJp: "動詞", icon: Languages },
-  { href: "/grammar", label: "Grammar", labelJp: "文法", icon: BookOpen },
-  { href: "/vocabulary", label: "Vocab", labelJp: "語彙", icon: BookText },
-  { href: "/kanji", label: "Kanji", labelJp: "漢字", icon: PenLine },
-  { href: "/reading", label: "Reading", labelJp: "読解", icon: FileText },
-  { href: "/quiz", label: "Quiz", labelJp: "クイズ", icon: HelpCircle },
-  { href: "/progress", label: "Progress", labelJp: "統計", icon: TrendingUp },
+  { href: "/review", label: "Review", labelJp: "復習", labelEs: "Repaso", icon: Repeat },
+  { href: "/kana", label: "Kana", labelJp: "かな", labelEs: "Kana", icon: Shapes, jaOnly: true },
+  { href: "/verbs", label: "Verbs", labelJp: "動詞", labelEs: "Verbos", icon: Languages },
+  { href: "/grammar", label: "Grammar", labelJp: "文法", labelEs: "Gramática", icon: BookOpen },
+  { href: "/vocabulary", label: "Vocab", labelJp: "語彙", labelEs: "Vocabulario", icon: BookText },
+  { href: "/kanji", label: "Kanji", labelJp: "漢字", labelEs: "Kanji", icon: PenLine, jaOnly: true },
+  { href: "/reading", label: "Reading", labelJp: "読解", labelEs: "Lectura", icon: FileText },
+  { href: "/quiz", label: "Quiz", labelJp: "クイズ", labelEs: "Examen", icon: HelpCircle },
+  { href: "/progress", label: "Progress", labelJp: "統計", labelEs: "Progreso", icon: TrendingUp },
   {
     href: "/admin",
     label: "Admin",
     labelJp: "管理",
+    labelEs: "Admin",
     icon: ShieldCheck,
     adminOnly: true,
   },
 ];
 
-/**
- * The shortlist carried by the desktop pill while the sidebar is collapsed.
- *
- * This was the mobile navigation too, until mobile got the drawer below. It is
- * a shortlist rather than the full `navItems` because the pill is a stopgap
- * for a hidden sidebar, not a replacement for it.
- */
 interface QuickNavItem {
   href: string;
   label: string;
   icon: LucideIcon;
   adminOnly?: boolean;
+  jaOnly?: boolean;
 }
 
 const quickNavItems: QuickNavItem[] = [
   { href: "/", label: "Home", icon: LayoutDashboard },
   { href: "/review", label: "Review", icon: Repeat },
-  { href: "/kana", label: "Kana", icon: Shapes },
+  { href: "/kana", label: "Kana", icon: Shapes, jaOnly: true },
   { href: "/vocabulary", label: "Vocab", icon: BookText },
   { href: "/quiz", label: "Quiz", icon: HelpCircle },
   { href: "/admin", label: "Admin", icon: ShieldCheck, adminOnly: true },
@@ -279,6 +276,7 @@ function SidebarBody({
   const pathname = usePathname();
   const { theme, setTheme } = useTheme();
   const { user, isLoading } = useAuth();
+  const { language } = useLanguage();
   const { showFurigana, autoPlayAudio, toggleFurigana, toggleAutoPlay } =
     useLearning();
   const [mounted, setMounted] = useState(false);
@@ -290,6 +288,7 @@ function SidebarBody({
         <ul className="flex flex-col gap-1">
           {navItems.map((item) => {
             if (item.adminOnly && user?.role !== "admin") return null;
+            if (item.jaOnly && language === "es") return null;
             const isActive = pathname === item.href;
             return (
               <li key={item.href}>
@@ -318,19 +317,17 @@ function SidebarBody({
                     )}
                   />
                   <span>{item.label}</span>
-                  {/* Japanese label is a lexical aid, not decoration — it
-                      gets a real language tag so screen readers switch
-                      voice instead of spelling it out in English. */}
                   <span
-                    lang="ja"
+                    lang={language}
                     className={cn(
-                      "ml-auto font-jp text-xs",
+                      "ml-auto text-xs",
+                      language === "ja" && "font-jp",
                       isActive
                         ? "text-secondary-foreground"
                         : "text-muted-foreground",
                     )}
                   >
-                    {item.labelJp}
+                    {language === "es" ? item.labelEs : item.labelJp}
                   </span>
                 </Link>
               </li>
@@ -372,20 +369,22 @@ function SidebarBody({
           <h2 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
             Study preferences
           </h2>
-          <div className="flex items-center justify-between gap-3">
-            <Label
-              htmlFor={`furigana-toggle-${onNavigate ? "drawer" : "rail"}`}
-              className="flex cursor-pointer items-center gap-2 text-xs font-medium text-foreground"
-            >
-              <Type className="size-4 text-muted-foreground" />
-              Furigana
-            </Label>
-            <Switch
-              id={`furigana-toggle-${onNavigate ? "drawer" : "rail"}`}
-              checked={mounted ? showFurigana : true}
-              onCheckedChange={toggleFurigana}
-            />
-          </div>
+          {language === "ja" && (
+            <div className="flex items-center justify-between gap-3">
+              <Label
+                htmlFor={`furigana-toggle-${onNavigate ? "drawer" : "rail"}`}
+                className="flex cursor-pointer items-center gap-2 text-xs font-medium text-foreground"
+              >
+                <Type className="size-4 text-muted-foreground" />
+                Furigana
+              </Label>
+              <Switch
+                id={`furigana-toggle-${onNavigate ? "drawer" : "rail"}`}
+                checked={mounted ? showFurigana : true}
+                onCheckedChange={toggleFurigana}
+              />
+            </div>
+          )}
           <div className="flex items-center justify-between gap-3">
             <Label
               htmlFor={`autoplay-toggle-${onNavigate ? "drawer" : "rail"}`}
@@ -408,17 +407,14 @@ function SidebarBody({
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { theme, setTheme } = useTheme();
   const { user, isLoading } = useAuth();
-  const { showFurigana, autoPlayAudio, toggleFurigana, toggleAutoPlay } =
-    useLearning();
+  const { language, setLanguage } = useLanguage();
   const { open, defaultTab, openLogin, openRegister, setOpen } =
     useAuthDialog();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
-  const parallaxRef = useParallax();
   const isMobile = useIsMobile();
 
   // Navigating is the drawer's whole purpose, so arriving somewhere closes it.
@@ -440,49 +436,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         Skip to content
       </a>
       {/* ── Ambient ground ───────────────────────────────────────────────────
-          The photograph is the background of the whole app: painted at the
-          back, drifting against the scroll, then softened until it carries
-          light rather than detail. Order matters — blur and desaturate first,
-          brand wash second, graded scrim last. Everything above this stack is
-          glass, so the image reads through the UI instead of only around it.
-
-          The earlier version ran the photo at effectively 6% under a
-          near-solid scrim, which is a background nobody can see. The contrast
-          guarantee is now carried by the blur + scrim + per-surface backdrop
-          blur together, not by hiding the picture. */}
+          Clean studio canvas with subtle radial atmospheric light. Keeps every
+          surface crisp and legible across both light and dark modes. */}
       <div
         aria-hidden="true"
         className="pointer-events-none fixed inset-0 -z-10 overflow-hidden"
       >
-        <div
-          ref={parallaxRef}
-          className="absolute inset-[-10%] scale-[1.14] will-change-transform"
-          style={{
-            opacity: "var(--ambient-photo)",
-            filter:
-              "blur(var(--ambient-blur)) saturate(var(--ambient-saturate))",
-          }}
-        >
-          <Image
-            src="/images/hero-japan-4k.jpg"
-            alt=""
-            fill
-            sizes="100vw"
-            className="object-cover object-[50%_38%]"
-            priority
-          />
-        </div>
-
-        {/* A single slow wash of brand light, low in the frame. */}
-        <div className="animate-drift absolute -bottom-[25%] -left-[10%] h-[70%] w-[70%] rounded-full bg-primary/20 blur-[150px]" />
-
-        {/* The scrim — graded, heavier at the edges where the header and the
-            floating nav sit. Everything above this line has predictable
-            contrast. */}
-        <div
-          className="absolute inset-0"
-          style={{ background: "var(--ambient-scrim)" }}
-        />
+        <div className="absolute -top-[20%] left-1/2 h-[55%] w-[80%] -translate-x-1/2 rounded-full bg-primary/6 blur-[120px]" />
+        <div className="animate-drift absolute -bottom-[20%] -left-[10%] h-[50%] w-[55%] rounded-full bg-ai/6 blur-[140px]" />
       </div>
 
       {/* Paper grain, behind every surface — a property of the ground, not a
@@ -501,13 +462,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           tabbed into, and background scroll is locked. Those are the parts of
           a drawer that are easy to leave out and obvious when missing. */}
       <Sheet open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
-        <header className="safe-top [--safe-top-pad:0.5rem] sticky top-0 z-30 flex items-center gap-1 border-b glass-panel px-3 pb-2 md:hidden">
+        <header className="safe-top [--safe-top-pad:0.5rem] sticky top-0 z-30 flex items-center gap-2 border-b glass-panel px-3 pb-2 md:hidden">
           <SheetTrigger asChild>
             <button
-              className="flex size-11 items-center justify-center rounded-xl text-foreground transition-colors duration-(--dur-1) hover:bg-accent hover:text-accent-foreground"
+              className="flex min-h-10 items-center justify-center gap-1.5 rounded-xl px-2.5 text-xs font-medium text-foreground transition-colors duration-(--dur-1) hover:bg-accent hover:text-accent-foreground"
               aria-label="Open navigation"
             >
-              <Menu className="size-5" />
+              <Menu className="size-4" />
+              <span>Menu</span>
             </button>
           </SheetTrigger>
 
@@ -578,13 +540,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 className="flex items-center gap-3 rounded-lg"
               >
                 <ManabiLogo />
-                <span>
-                  <span className="block font-brand text-lg font-medium leading-tight text-foreground">
-                    Manabi
-                  </span>
-                  <span className="block text-xs font-normal text-muted-foreground">
-                    学び
-                  </span>
+                <span className="font-brand text-lg font-medium leading-tight text-foreground">
+                  Manabi
                 </span>
               </Link>
             </SheetTitle>
@@ -625,11 +582,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             aria-label="Manabi home"
           >
             <ManabiLogo />
-            <span>
-              <span className="block font-brand text-lg font-medium leading-tight text-foreground">
-                Manabi
-              </span>
-              <span className="block text-xs text-muted-foreground">学び</span>
+            <span className="font-brand text-lg font-medium leading-tight text-foreground">
+              Manabi
             </span>
           </Link>
           <button
@@ -647,17 +601,92 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <main
         id="main"
         className={cn(
-          // The old `pb-28` reserved a landing strip for the floating pill.
-          // Nothing hovers over the bottom of the page on mobile now, so the
-          // content runs to the safe area instead of stopping short of it.
           "safe-bottom relative z-10 flex-1",
           "transition-[padding] duration-(--dur-4) ease-(--ease-out-expo)",
           isSidebarCollapsed ? "md:pl-0" : "md:pl-64",
         )}
       >
+        {/* Top Navbar — Flag Switcher + Centered Logo when sidebar is collapsed */}
+        <div className="border-b border-border/80 bg-background/85 backdrop-blur-md md:sticky md:top-0 md:z-20">
+          <div
+            className={cn(
+              "relative mx-auto flex items-center justify-between gap-3 px-4 py-2 md:px-8 transition-all duration-500 ease-in-out",
+              isSidebarCollapsed ? "max-w-7xl" : "max-w-5xl",
+            )}
+          >
+            <div
+              role="group"
+              aria-label="Select learning language"
+              className="relative inline-grid w-24 grid-cols-2 items-center rounded-full border border-border bg-card p-1 shadow-e1"
+            >
+              {/* Smooth sliding active pill */}
+              <span
+                aria-hidden="true"
+                className={cn(
+                  "pointer-events-none absolute inset-y-1 left-1 w-[calc(50%-0.25rem)] rounded-full bg-primary/15 ring-1 ring-primary/40 transition-[transform,background-color,box-shadow] duration-300 ease-(--ease-out-expo)",
+                  language === "es" ? "translate-x-full" : "translate-x-0",
+                )}
+              />
+              <button
+                type="button"
+                onClick={() => setLanguage("ja")}
+                aria-pressed={language === "ja"}
+                aria-label="Japanese"
+                title="Japanese"
+                className={cn(
+                  "relative z-10 flex h-8 items-center justify-center rounded-full text-base transition-transform duration-300 ease-(--ease-out-expo)",
+                  language === "ja"
+                    ? "scale-110"
+                    : "opacity-60 hover:opacity-100",
+                )}
+              >
+                <span aria-hidden="true">🇯🇵</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setLanguage("es")}
+                aria-pressed={language === "es"}
+                aria-label="Spanish"
+                title="Spanish"
+                className={cn(
+                  "relative z-10 flex h-8 items-center justify-center rounded-full text-base transition-transform duration-300 ease-(--ease-out-expo)",
+                  language === "es"
+                    ? "scale-110"
+                    : "opacity-60 hover:opacity-100",
+                )}
+              >
+                <span aria-hidden="true">🇪🇸</span>
+              </button>
+            </div>
+
+            {/* Centered logo when desktop sidebar is collapsed */}
+            <Link
+              href="/"
+              aria-label="Manabi home"
+              tabIndex={isSidebarCollapsed ? undefined : -1}
+              className={cn(
+                "absolute left-1/2 hidden -translate-x-1/2 items-center gap-2 rounded-lg px-2 py-1 transition-[opacity,transform] duration-300 ease-(--ease-out-expo) md:flex",
+                isSidebarCollapsed
+                  ? "pointer-events-auto scale-100 opacity-100"
+                  : "pointer-events-none scale-95 opacity-0",
+              )}
+            >
+              <ManabiLogo className="size-7" markClassName="size-7" />
+              <span className="font-brand text-base font-medium leading-none text-foreground">
+                Manabi
+              </span>
+            </Link>
+
+            <span className="text-xs font-medium text-muted-foreground transition-colors duration-300">
+              {language === "es" ? "CEFR A1–C1" : "JLPT N5–N1"}
+            </span>
+          </div>
+        </div>
+
         <div
+          key={language}
           className={cn(
-            "mx-auto px-4 py-6 md:px-8 md:py-8 transition-all duration-500 ease-in-out",
+            "animate-lang-swap mx-auto px-4 py-6 md:px-8 md:py-8 transition-all duration-500 ease-in-out",
             isSidebarCollapsed ? "max-w-7xl" : "max-w-5xl",
           )}
         >
@@ -689,22 +718,24 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         )}
         inert={!isSidebarCollapsed || undefined}
       >
-        <div className="glass-strong flex min-h-14 items-center gap-1 rounded-2xl border p-1.5">
+        <div className="glass-strong flex items-center gap-1 rounded-2xl border p-1.5">
           <button
             onClick={() => setIsSidebarCollapsed(false)}
-            className="hidden rounded-xl p-2.5 text-muted-foreground transition-colors duration-(--dur-1) hover:bg-accent hover:text-accent-foreground md:flex"
+            className="hidden min-w-13 flex-col items-center justify-center gap-1 rounded-xl px-2.5 py-1.5 text-muted-foreground transition-colors duration-(--dur-1) hover:bg-accent hover:text-accent-foreground md:flex"
             aria-label="Expand sidebar"
           >
-            <PanelLeftOpen className="size-5" />
+            <PanelLeftOpen className="size-4" />
+            <span className="text-[10px] font-medium leading-none">Menu</span>
           </button>
 
           <div
             aria-hidden="true"
-            className="mx-1 hidden h-6 w-px bg-border md:block"
+            className="mx-1 hidden h-7 w-px bg-border md:block"
           />
 
           {quickNavItems.map((item) => {
             if (item.adminOnly && user?.role !== "admin") return null;
+            if (item.jaOnly && language === "es") return null;
             const isActive = pathname === item.href;
             return (
               <Link
@@ -712,50 +743,48 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 href={item.href}
                 aria-current={isActive ? "page" : undefined}
                 className={cn(
-                  "group/item relative flex size-11 items-center justify-center rounded-xl",
+                  "flex min-w-13 flex-col items-center justify-center gap-1 rounded-xl px-2.5 py-1.5",
                   "transition-colors duration-(--dur-1)",
                   isActive
                     ? "bg-primary-tint text-primary"
                     : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
                 )}
               >
-                <item.icon className="size-5" />
-                {/* The label is the accessible name and the tooltip both —
-                    the icon alone named nothing before. */}
-                <span className="sr-only">{item.label}</span>
-                <span
-                  aria-hidden="true"
-                  className="pointer-events-none absolute -top-9 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-foreground px-2 py-1 text-[11px] font-medium text-background opacity-0 transition-opacity duration-(--dur-1) group-hover/item:opacity-100"
-                >
+                <item.icon className="size-4" />
+                <span className="text-[10px] font-medium leading-none">
                   {item.label}
                 </span>
               </Link>
             );
           })}
 
-          <div aria-hidden="true" className="mx-1 h-6 w-px bg-border" />
+          <div aria-hidden="true" className="mx-1 h-7 w-px bg-border" />
 
           {user ? (
             <Link
               href="/profile"
-              className="flex size-11 items-center justify-center rounded-xl transition-colors duration-(--dur-1) hover:bg-accent"
+              className="flex min-w-13 flex-col items-center justify-center gap-1 rounded-xl px-2.5 py-1.5 transition-colors duration-(--dur-1) hover:bg-accent"
             >
               <AvatarBadge
                 initials={user.avatarInitials}
                 avatarUrl={user.avatarUrl}
                 size="sm"
                 showUserIconOnHover
-                className="size-8 rounded-lg"
+                className="size-5 rounded-md text-[9px]"
               />
-              <span className="sr-only">Your profile</span>
+              <span className="text-[10px] font-medium leading-none text-muted-foreground">
+                Profile
+              </span>
             </Link>
           ) : (
             <button
               onClick={openLogin}
-              className="flex size-11 items-center justify-center rounded-xl text-muted-foreground transition-colors duration-(--dur-1) hover:bg-accent hover:text-accent-foreground"
+              className="flex min-w-13 flex-col items-center justify-center gap-1 rounded-xl px-2.5 py-1.5 text-muted-foreground transition-colors duration-(--dur-1) hover:bg-accent hover:text-accent-foreground"
             >
-              <LogIn className="size-5" />
-              <span className="sr-only">Sign in</span>
+              <LogIn className="size-4" />
+              <span className="text-[10px] font-medium leading-none">
+                Log in
+              </span>
             </button>
           )}
         </div>

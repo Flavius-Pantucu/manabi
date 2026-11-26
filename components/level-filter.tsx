@@ -2,13 +2,12 @@
 
 import { cn } from "@/lib/utils";
 import { LEVELS, type Level } from "@/lib/content/types";
+import { useLanguage } from "@/lib/language-context";
 
 /**
  * Level selector for the study pages.
  *
- * With five levels and 8,034 words, browsing "everything" is not a useful
- * default — the list has to be scoped before it means anything. Counts come
- * from the manifest so the numbers are right before the level has loaded.
+ * Displays JLPT levels (N5–N1) for Japanese and CEFR levels (A1–C1) for Spanish.
  */
 export function LevelFilter({
   value,
@@ -21,10 +20,12 @@ export function LevelFilter({
   counts?: Partial<Record<Level, number>>;
   className?: string;
 }) {
+  const { language, formatLevel } = useLanguage();
+
   return (
     <div
       role="group"
-      aria-label="JLPT level"
+      aria-label={language === "es" ? "CEFR level" : "JLPT level"}
       className={cn("flex flex-wrap gap-1.5", className)}
     >
       {LEVELS.map((lv) => {
@@ -41,7 +42,7 @@ export function LevelFilter({
                 : "border-input text-muted-foreground hover:bg-accent hover:text-accent-foreground",
             )}
           >
-            {lv}
+            {formatLevel(lv)}
             {counts?.[lv] !== undefined && (
               <span
                 data-numeric

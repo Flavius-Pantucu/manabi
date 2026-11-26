@@ -4,6 +4,7 @@ import { Analytics } from "@vercel/analytics/next";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AppShell } from "@/components/app-shell";
 import { LearningProvider } from "@/lib/learning-context";
+import { LanguageProvider } from "@/lib/language-context";
 import { AuthProvider } from "@/lib/auth-context";
 import { ReduxProvider } from "@/lib/store/provider";
 import { ContentProvider } from "@/lib/content/provider";
@@ -27,19 +28,42 @@ const _shippori = Shippori_Mincho({
 });
 
 export const metadata: Metadata = {
-  title: "Manabi - Learn Japanese",
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_APP_URL ?? "https://manabi.app",
+  ),
+  title: {
+    default: "Manabi — Language Learning Platform",
+    template: "%s | Manabi",
+  },
   description:
-    "A modern Japanese learning app with verbs, grammar, vocabulary, kanji, reading practice and quizzes.",
+    "Master languages with spaced repetition, interactive flashcards, grammar guides, reading practice, and quizzes.",
   applicationName: "Manabi",
   manifest: "/manifest.json",
   icons: {
-    // Raster, because the brand mark is artwork (public/logo.png), not a
-    // drawn path — there is no vector of it to serve. `icon.png` is that file
-    // resampled to 192px so the tab does not pull the 229 KB original; the
-    // touch icon is resampled to 156px and padded out to 180 on washi,
-    // because iOS composites a transparent icon onto black.
     icon: [{ url: "/icon.png", type: "image/png", sizes: "192x192" }],
-    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180" }],
+    apple: [{ url: "/apple-touch-icon.png", type: "image/png", sizes: "180x180" }],
+  },
+  openGraph: {
+    type: "website",
+    siteName: "Manabi",
+    title: "Manabi — Language Learning Platform",
+    description:
+      "Master languages with spaced repetition, interactive flashcards, grammar guides, reading practice, and quizzes.",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "Manabi — Master languages with spaced repetition",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Manabi — Language Learning Platform",
+    description:
+      "Master languages with spaced repetition, interactive flashcards, grammar guides, reading practice, and quizzes.",
+    images: ["/og-image.png"],
   },
 };
 
@@ -50,8 +74,8 @@ export const viewport: Viewport = {
   // matters more than usual here — learners zoom in to read kanji strokes.
   viewportFit: "cover",
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#fcf8f6" },
-    { media: "(prefers-color-scheme: dark)", color: "#130e13" },
+    { media: "(prefers-color-scheme: light)", color: "#f8fafc" },
+    { media: "(prefers-color-scheme: dark)", color: "#0f172a" },
   ],
 };
 
@@ -73,15 +97,17 @@ export default function RootLayout({
             disableTransitionOnChange
           >
             <AuthProvider>
-              {/* Inside AuthProvider and the store: it needs both to know
-                  who is signed in and what there is to send. */}
-              <SyncProvider>
-                <ContentProvider>
-                  <LearningProvider>
-                    <AppShell>{children}</AppShell>
-                  </LearningProvider>
-                </ContentProvider>
-              </SyncProvider>
+              <LanguageProvider>
+                {/* Inside AuthProvider and the store: it needs both to know
+                    who is signed in and what there is to send. */}
+                <SyncProvider>
+                  <ContentProvider>
+                    <LearningProvider>
+                      <AppShell>{children}</AppShell>
+                    </LearningProvider>
+                  </ContentProvider>
+                </SyncProvider>
+              </LanguageProvider>
             </AuthProvider>
           </ThemeProvider>
         </ReduxProvider>

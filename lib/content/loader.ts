@@ -10,7 +10,7 @@
  */
 
 import type {
-  ContentManifest, GrammarPoint, Kanji, Level, LevelContent, ReadingPassage,
+  ContentManifest, GrammarPoint, Kanji, Language, Level, LevelContent, ReadingPassage,
   Verb, Vocab, WireGrammar, WireKanji, WireReading, WireVerb, WireVocab,
 } from "./types";
 
@@ -37,11 +37,15 @@ function fetchJson<T>(path: string): Promise<T> {
   return p;
 }
 
-const file = (kind: Kind, level: Level) =>
-  `/data/${kind}/${level.toLowerCase()}.json`;
+const file = (kind: Kind, level: Level, lang: Language = "ja") =>
+  lang === "es"
+    ? `/data/es/${kind}/${level.toLowerCase()}.json`
+    : `/data/${kind}/${level.toLowerCase()}.json`;
 
-export function loadManifest(): Promise<ContentManifest> {
-  return fetchJson<ContentManifest>("/data/index.json");
+export function loadManifest(lang: Language = "ja"): Promise<ContentManifest> {
+  return fetchJson<ContentManifest>(
+    lang === "es" ? "/data/es/index.json" : "/data/index.json",
+  );
 }
 
 // ── expanders ───────────────────────────────────────────────────────────────
@@ -59,9 +63,12 @@ const key = (s: string) => s.replace(/[\s:]/g, "");
 const wordKey = (word: string, reading: string) =>
   reading && reading !== word ? `${key(word)}@${key(reading)}` : key(word);
 
-function expandVocab(rows: WireVocab[], level: Level): Vocab[] {
+const idPrefix = (lang: Language) => (lang === "es" ? "es:" : "");
+
+function expandVocab(rows: WireVocab[], level: Level, lang: Language = "ja"): Vocab[] {
+  const pre = idPrefix(lang);
   return rows.map((v) => ({
-    id: `vocab:${wordKey(v.w, v.r)}`,
+    id: `${pre}vocab:${wordKey(v.w, v.r)}`,
     level,
     word: v.w,
     reading: v.r,
@@ -89,9 +96,10 @@ function expandKanji(rows: WireKanji[], level: Level): Kanji[] {
   }));
 }
 
-function expandVerbs(rows: WireVerb[], level: Level): Verb[] {
+function expandVerbs(rows: WireVerb[], level: Level, lang: Language = "ja"): Verb[] {
+  const pre = idPrefix(lang);
   return rows.map((v) => ({
-    id: `verb:${wordKey(v.d, v.r)}`,
+    id: `${pre}verb:${wordKey(v.d, v.r)}`,
     level,
     dictionary: v.d,
     reading: v.r,
@@ -101,9 +109,10 @@ function expandVerbs(rows: WireVerb[], level: Level): Verb[] {
   }));
 }
 
-function expandGrammar(rows: WireGrammar[], level: Level): GrammarPoint[] {
+function expandGrammar(rows: WireGrammar[], level: Level, lang: Language = "ja"): GrammarPoint[] {
+  const pre = idPrefix(lang);
   return rows.map(([pattern, meaning, formation, examples, comparison]) => ({
-    id: `grammar:${key(pattern)}`,
+    id: `${pre}grammar:${key(pattern)}`,
     level,
     pattern,
     meaning,
@@ -115,9 +124,10 @@ function expandGrammar(rows: WireGrammar[], level: Level): GrammarPoint[] {
   }));
 }
 
-function expandReading(rows: WireReading[], level: Level): ReadingPassage[] {
+function expandReading(rows: WireReading[], level: Level, lang: Language = "ja"): ReadingPassage[] {
+  const pre = idPrefix(lang);
   return rows.map(([title, japanese, translation, words, questions], i) => ({
-    id: `reading:${level}:${i}`,
+    id: `${pre}reading:${level}:${i}`,
     level,
     title,
     japanese,
@@ -129,31 +139,33 @@ function expandReading(rows: WireReading[], level: Level): ReadingPassage[] {
 
 // ── public API ──────────────────────────────────────────────────────────────
 
-export const loadVocab = (l: Level) =>
-  fetchJson<WireVocab[]>(file("vocab", l)).then((r) => expandVocab(r, l));
-export const loadKanji = (l: Level) =>
-  fetchJson<WireKanji[]>(file("kanji", l)).then((r) => expandKanji(r, l));
-export const loadVerbs = (l: Level) =>
-  fetchJson<WireVerb[]>(file("verbs", l)).then((r) => expandVerbs(r, l));
-export const loadGrammar = (l: Level) =>
-  fetchJson<WireGrammar[]>(file("grammar", l)).then((r) => expandGrammar(r, l));
-export const loadReading = (l: Level) =>
-  fetchJson<WireReading[]>(file("reading", l)).then((r) => expandReading(r, l));
+export const loadVocab = (l: Level, lang: Language = "ja") =>
+  fetchJson<WireVocab[]>(file("vocab", l, lang)).then((r) => expandVocab(r, l, lang));
+export const loadKanji = (l: Level, lang: Language = "ja") =>
+  lang === "es"
+    ? Promise.resolve<Kanji[]>([])
+    : fetchJson<WireKanji[]>(file("kanji", l, lang)).then((r) => expandKanji(r, l));
+export const loadVerbs = (l: Level, lang: Language = "ja") =>
+  fetchJson<WireVerb[]>(file("verbs", l, lang)).then((r) => expandVerbs(r, l, lang));
+export const loadGrammar = (l: Level, lang: Language = "ja") =>
+  fetchJson<WireGrammar[]>(file("grammar", l, lang)).then((r) => expandGrammar(r, l, lang));
+export const loadReading = (l: Level, lang: Language = "ja") =>
+  fetchJson<WireReading[]>(file("reading", l, lang)).then((r) => expandReading(r, l, lang));
 
 /** Stroke paths for one level, keyed by character. */
 export const loadStrokes = (l: Level) =>
-  fetchJson<Record<string, string[]>>(file("strokes", l));
+  fetchJson<Record<string, string[]>>(file("strokes", l, "ja"));
 
-export async function loadLevel(level: Level): Promise<LevelContent> {
+export async function loadLevel(level: Level, lang: Language = "ja"): Promise<LevelContent> {
   const [vocab, kanji, verbs, grammar, reading] = await Promise.all([
-    loadVocab(level), loadKanji(level), loadVerbs(level),
-    loadGrammar(level), loadReading(level),
+    loadVocab(level, lang), loadKanji(level, lang), loadVerbs(level, lang),
+    loadGrammar(level, lang), loadReading(level, lang),
   ]);
   return { level, vocab, kanji, verbs, grammar, reading };
 }
 
-export async function loadLevels(levels: Level[]): Promise<LevelContent[]> {
-  return Promise.all(levels.map(loadLevel));
+export async function loadLevels(levels: Level[], lang: Language = "ja"): Promise<LevelContent[]> {
+  return Promise.all(levels.map((l) => loadLevel(l, lang)));
 }
 
 /** Load one kind across several levels — what the study pages need. */

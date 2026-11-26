@@ -7,6 +7,7 @@ import { useAppSelector } from "@/lib/store/hooks";
 import { loadLevels, loadManifest } from "./loader";
 import type { ContentManifest, Level, LevelContent } from "./types";
 import { LEVELS } from "./types";
+import { useLanguage } from "@/lib/language-context";
 import {
   buildItems, indexItems, kanaDeckItems, type ReviewItem,
 } from "@/lib/srs/decks";
@@ -42,6 +43,7 @@ const Ctx = createContext<ContentValue | null>(null);
 const KANA_ONLY = kanaDeckItems();
 
 export function ContentProvider({ children }: { children: ReactNode }) {
+  const { language } = useLanguage();
   const settingsLevels = useAppSelector((s) => s.srs?.settings?.levels);
   const cards = useAppSelector((s) => s.srs?.cards);
 
@@ -64,13 +66,13 @@ export function ContentProvider({ children }: { children: ReactNode }) {
     return LEVELS.filter((l) => set.has(l));
   }, [settingsLevels, extra, cards]);
 
-  const key = wanted.join(",");
+  const key = `${language}:${wanted.join(",")}`;
 
   useEffect(() => {
     let alive = true;
     setLoading(true);
     setError(null);
-    Promise.all([loadLevels(wanted), loadManifest().catch(() => null)])
+    Promise.all([loadLevels(wanted, language), loadManifest(language).catch(() => null)])
       .then(([levels, m]) => {
         if (!alive) return;
         setLoaded(levels);
@@ -87,7 +89,11 @@ export function ContentProvider({ children }: { children: ReactNode }) {
   }, [key]);
 
   const value = useMemo<ContentValue>(() => {
-    const items = loaded.length ? buildItems(loaded) : KANA_ONLY;
+    const items = loaded.length
+      ? buildItems(loaded, language)
+      : language === "ja"
+        ? KANA_ONLY
+        : [];
     return {
       items,
       byId: indexItems(items),
@@ -102,7 +108,7 @@ export function ContentProvider({ children }: { children: ReactNode }) {
           return next.length === prev.length ? prev : next;
         }),
     };
-  }, [loaded, manifest, loading, error]);
+  }, [loaded, manifest, loading, error, language]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

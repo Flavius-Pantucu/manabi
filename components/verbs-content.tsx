@@ -13,14 +13,19 @@ import { useLevelContent } from "@/hooks/use-level-content";
 import { useContent } from "@/lib/content/provider";
 import { loadVerbs } from "@/lib/content/loader";
 import type { Level, Verb } from "@/lib/content/types";
+import { useLanguage } from "@/lib/language-context";
 
 const GROUP_TONE: Record<string, string> = {
   "Group 1": "bg-ai/12 text-ai",
   "Group 2": "bg-matsuba/12 text-matsuba",
   "Group 3": "bg-shu/12 text-shu",
+  "-ar": "bg-ai/12 text-ai",
+  "-er": "bg-matsuba/12 text-matsuba",
+  "-ir": "bg-fuji/12 text-fuji",
+  "Irregular": "bg-shu/12 text-shu",
 };
 
-const FORMS: { key: string; label: string; jp: string }[] = [
+const FORMS_JA: { key: string; label: string; jp: string }[] = [
   { key: "masu", label: "Polite", jp: "ます形" },
   { key: "te", label: "Te-form", jp: "て形" },
   { key: "ta", label: "Past plain", jp: "た形" },
@@ -35,20 +40,37 @@ const FORMS: { key: string; label: string; jp: string }[] = [
   { key: "imperative", label: "Imperative", jp: "命令" },
 ];
 
+const FORMS_ES: { key: string; label: string; jp: string }[] = [
+  { key: "presente_yo", label: "Present (yo)", jp: "Presente" },
+  { key: "presente_tu", label: "Present (tú)", jp: "Presente" },
+  { key: "presente_el", label: "Present (él/ella)", jp: "Presente" },
+  { key: "presente_nosotros", label: "Present (nosotros)", jp: "Presente" },
+  { key: "presente_ellos", label: "Present (ellos)", jp: "Presente" },
+  { key: "preterito_yo", label: "Preterite (yo)", jp: "Pretérito" },
+  { key: "imperfecto_yo", label: "Imperfect (yo)", jp: "Imperfecto" },
+  { key: "futuro_yo", label: "Future (yo)", jp: "Futuro" },
+  { key: "condicional_yo", label: "Conditional (yo)", jp: "Condicional" },
+  { key: "subjuntivo_yo", label: "Subjunctive (yo)", jp: "Subjuntivo" },
+  { key: "imperativo_tu", label: "Imperative (tú)", jp: "Imperativo" },
+  { key: "participio", label: "Past Participle", jp: "Participio" },
+];
+
 function Conjugations({ v }: { v: Verb }) {
+  const { language } = useLanguage();
+  const forms = language === "es" ? FORMS_ES : FORMS_JA;
   return (
     <Card>
       <CardContent className="flex flex-col gap-4 py-6">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p lang="ja" className="font-jp text-3xl font-semibold text-foreground">
+            <p lang={language} className={cn("text-3xl font-semibold text-foreground", language === "ja" && "font-jp")}>
               {v.dictionary}
             </p>
-            <p lang="ja" className="font-jp text-sm text-muted-foreground">{v.reading}</p>
+            <p lang={language} className={cn("text-sm text-muted-foreground", language === "ja" && "font-jp")}>{v.reading}</p>
             <p className="mt-1 text-sm text-foreground">{v.meaning}</p>
           </div>
           <div className="flex shrink-0 items-center gap-2">
-            <span className={cn("rounded-md px-2 py-1 text-xs font-medium", GROUP_TONE[v.group])}>
+            <span className={cn("rounded-md px-2 py-1 text-xs font-medium", GROUP_TONE[v.group] ?? "bg-secondary text-secondary-foreground")}>
               {v.group}
             </span>
             <SpeakButton text={v.dictionary} />
@@ -58,16 +80,16 @@ function Conjugations({ v }: { v: Verb }) {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <tbody>
-              {FORMS.map((f) => {
+              {forms.map((f) => {
                 const val = v.conjugations[f.key];
                 if (!val) return null;
                 return (
                   <tr key={f.key} className="border-b border-border last:border-0">
                     <th scope="row" className="py-2 pr-3 text-left font-medium text-muted-foreground">
                       {f.label}{" "}
-                      <span lang="ja" className="font-jp text-xs opacity-70">{f.jp}</span>
+                      <span lang={language} className={cn("text-xs opacity-70", language === "ja" && "font-jp")}>{f.jp}</span>
                     </th>
-                    <td lang="ja" className="py-2 font-jp text-base font-medium text-foreground">
+                    <td lang={language} className={cn("py-2 text-base font-medium text-foreground", language === "ja" && "font-jp")}>
                       {val}
                     </td>
                     <td className="w-9 py-2">

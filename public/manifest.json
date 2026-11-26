@@ -1,11 +1,11 @@
 {
-  "name": "Manabi \u2014 Learn Japanese",
+  "name": "Manabi \u2014 Language Learning Platform",
   "short_name": "Manabi",
-  "description": "Vocabulary, kanji, grammar, verb conjugation, reading and quizzes for learners of Japanese.",
+  "description": "Master languages with spaced repetition, interactive flashcards, grammar guides, reading practice, and quizzes.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#fcf8f6",
-  "theme_color": "#b33e7a",
+  "background_color": "#f8fafc",
+  "theme_color": "#254edb",
   "lang": "en",
   "icons": [
     {

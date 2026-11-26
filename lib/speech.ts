@@ -104,16 +104,22 @@ export function allVoices(): SpeechSynthesisVoice[] {
 
 /** Matches ja, ja-JP, ja_JP and regional extensions; never en-*. */
 const IS_JA = /^ja(-|_|$)/i;
+/** Matches es, es-ES, es-MX, es-419, etc. */
+const IS_ES = /^es(-|_|$)/i;
 
-export function listJapaneseVoices(): SpeechSynthesisVoice[] {
+export function listVoicesForLanguage(lang: "ja" | "es" = "ja"): SpeechSynthesisVoice[] {
+  const re = lang === "es" ? IS_ES : IS_JA;
   return refresh()
-    .filter((v) => IS_JA.test(v.lang))
-    // Local first, then alphabetical — the order the picker shows.
+    .filter((v) => re.test(v.lang))
     .sort((a, b) =>
       a.localService === b.localService
         ? a.name.localeCompare(b.name)
         : a.localService ? -1 : 1,
     );
+}
+
+export function listJapaneseVoices(): SpeechSynthesisVoice[] {
+  return listVoicesForLanguage("ja");
 }
 
 export function voiceStatus(): VoiceStatus {
@@ -167,19 +173,22 @@ export function setRate(r: number) {
  * Order: the learner's explicit choice, then a local ja-JP voice, then any
  * local Japanese voice, then a network one as a last resort.
  */
-export function resolveVoice(): SpeechSynthesisVoice | undefined {
-  const ja = listJapaneseVoices();
-  if (!ja.length) return undefined;
+export function resolveVoice(lang: "ja" | "es" = "ja"): SpeechSynthesisVoice | undefined {
+  const list = listVoicesForLanguage(lang);
+  if (!list.length) return undefined;
 
-  const pref = getPreferredVoiceURI();
-  if (pref) {
-    const match = ja.find((v) => v.voiceURI === pref);
-    if (match) return match;
+  if (lang === "ja") {
+    const pref = getPreferredVoiceURI();
+    if (pref) {
+      const match = list.find((v) => v.voiceURI === pref);
+      if (match) return match;
+    }
   }
+  const preferredRe = lang === "es" ? /^es(-|_)(ES|MX|US|419)$/i : /^ja(-|_)JP$/i;
   return (
-    ja.find((v) => v.localService && /^ja(-|_)JP$/i.test(v.lang)) ??
-    ja.find((v) => v.localService) ??
-    ja[0]
+    list.find((v) => v.localService && preferredRe.test(v.lang)) ??
+    list.find((v) => v.localService) ??
+    list[0]
   );
 }
 
@@ -193,17 +202,14 @@ export function onlyNetworkVoices(): boolean {
 
 export interface SpeakOptions {
   rate?: number;
+  lang?: "ja" | "es";
   onEnd?: () => void;
   onUnavailable?: () => void;
 }
 
 /**
- * Speak Japanese text. Synchronous by design — going through `await` first
- * breaks the user-gesture context Safari and Chrome require.
- *
- * Returns false and calls `onUnavailable` rather than falling back to a
- * non-Japanese voice: silence the caller can report is better than a
- * confident English mispronunciation a learner might copy.
+ * Speak text in the selected language. Synchronous by design — going through `await`
+ * first breaks the user-gesture context Safari and Chrome require.
  */
 export function speak(text: string, opts: SpeakOptions = {}): boolean {
   const s = synth();
@@ -213,8 +219,20 @@ export function speak(text: string, opts: SpeakOptions = {}): boolean {
   }
   bind();
 
-  const voice = resolveVoice();
+  const lang = opts.lang ?? "ja";
+  const voice = resolveVoice(lang);
   if (!voice) {
+    if (lang === "es") {
+      // Fallback for Spanish using explicit lang tag if no specific voice is listed yet
+      s.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = "es-ES";
+      u.rate = opts.rate ?? getRate();
+      u.pitch = 1;
+      u.onend = () => opts.onEnd?.();
+      s.speak(u);
+      return true;
+    }
     opts.onUnavailable?.();
     return false;
   }
@@ -223,9 +241,7 @@ export function speak(text: string, opts: SpeakOptions = {}): boolean {
 
   const u = new SpeechSynthesisUtterance(text);
   u.voice = voice;
-  // Keep lang in step with the chosen voice. Setting a lang the voice does not
-  // claim is one of the ways Chrome ends up substituting its default.
-  u.lang = voice.lang || "ja-JP";
+  u.lang = voice.lang || (lang === "es" ? "es-ES" : "ja-JP");
   u.rate = opts.rate ?? getRate();
   u.pitch = 1;
   u.onend = () => opts.onEnd?.();
