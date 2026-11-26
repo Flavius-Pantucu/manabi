@@ -32,7 +32,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { useLearning } from "@/lib/learning-context";
-import { useLanguage } from "@/lib/language-context";
+import { useLanguage, type Language } from "@/lib/language-context";
 import { AuthDialog, useAuthDialog } from "@/components/auth-dialog";
 import { createContext, useContext } from "react";
 import { Switch } from "@/components/ui/switch";
@@ -44,6 +44,12 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+} from "@/components/ui/select";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { CommandMenu } from "@/components/command-menu";
 import { ManabiLogo } from "@/components/manabi-mark";
@@ -487,9 +493,36 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <ManabiLogo className="size-8" markClassName="size-8" />
           </Link>
 
-          {/* The account lives here rather than in the drawer alone, so
-              signing in never costs two taps. */}
-          <div className="ml-auto">
+          {/* Language switcher + account live here rather than in the drawer alone. */}
+          <div className="ml-auto flex items-center gap-1">
+            <Select
+              value={language}
+              onValueChange={(v) => setLanguage(v as Language)}
+            >
+              <SelectTrigger
+                aria-label="Select learning language"
+                className="w-auto gap-1 border-0 bg-transparent px-2 py-0 shadow-none ring-0 hover:bg-accent focus-visible:ring-0 data-[size=default]:h-10 dark:bg-transparent dark:hover:bg-accent"
+              >
+                <span className="text-lg leading-none" aria-hidden="true">
+                  {language === "es" ? "🇪🇸" : language === "fr" ? "🇫🇷" : "🇯🇵"}
+                </span>
+              </SelectTrigger>
+              <SelectContent align="end">
+                <SelectItem value="es">
+                  <span aria-hidden="true">🇪🇸</span>
+                  Spanish
+                </SelectItem>
+                <SelectItem value="fr">
+                  <span aria-hidden="true">🇫🇷</span>
+                  French
+                </SelectItem>
+                <SelectItem value="ja">
+                  <span aria-hidden="true">🇯🇵</span>
+                  Japanese
+                </SelectItem>
+              </SelectContent>
+            </Select>
+
             {!isLoading &&
               (user ? (
                 <Link
@@ -607,8 +640,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           isSidebarCollapsed ? "md:pl-0" : "md:pl-64",
         )}
       >
-        {/* Top Navbar — Flag Switcher + Centered Logo when sidebar is collapsed */}
-        <div className="border-b border-border/80 bg-background/85 backdrop-blur-md md:sticky md:top-0 md:z-20">
+        {/* Top Navbar — Desktop Flag Switcher + Centered Logo when sidebar is collapsed */}
+        <div className="hidden border-b border-border/80 bg-background/85 backdrop-blur-md md:sticky md:top-0 md:z-20 md:block">
           <div
             className={cn(
               "relative mx-auto flex items-center justify-between gap-3 px-4 py-2 md:px-8 transition-all duration-500 ease-in-out",
