@@ -1,15 +1,16 @@
 "use client";
 
 import { useLearning } from "@/lib/learning-context";
-import { useAppSelector } from "@/lib/store/hooks";
+import { useAppDispatch, useAppSelector } from "@/lib/store/hooks";
+import { gradeCard } from "@/lib/store/features/srs-slice";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Flame,
   BookOpen,
   Languages,
-  GraduationCap,
   TrendingUp,
   Target,
   Clock,
@@ -18,12 +19,25 @@ import {
   Sparkles,
   FileText,
   HelpCircle,
+  Eye,
+  EyeOff,
+  Shuffle,
+  Check,
+  BookmarkPlus,
+  Minus,
+  Plus,
+  Compass,
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState, useMemo } from "react";
 import { SrsPanel } from "@/components/srs-panel";
 import { useContent } from "@/lib/content/provider";
 import { useLanguage } from "@/lib/language-context";
+import { useAuth } from "@/lib/auth-context";
+import { useAuthPrompt } from "@/components/app-shell";
+import { PlacementDialog } from "@/components/placement-dialog";
+import { SpeakButton } from "@/components/speak-button";
+import type { Level } from "@/lib/content/types";
 
 const quickStudy = [
   {
@@ -89,14 +103,21 @@ const frenchGreetings = [
 ];
 
 export function DashboardContent() {
-  const { language } = useLanguage();
-  const { manifest } = useContent();
+  const { language, formatLevel } = useLanguage();
+  const { user } = useAuth();
+  const { openLogin } = useAuthPrompt();
+  const { manifest, levels } = useContent();
+  const dispatch = useAppDispatch();
   const cards = useAppSelector((st) => st.srs?.cards);
+  const activeLevels = useAppSelector((st) => st.srs?.settings?.levels) as
+    | Level[]
+    | undefined;
   const {
     streak,
     wordsLearned,
     learnedToday,
     dailyGoal,
+    setDailyGoal,
     verbsMastered,
     lessonsCompleted,
     quizScores,
@@ -110,8 +131,15 @@ export function DashboardContent() {
         )
       : 0;
 
-  const [greeting, setGreeting] = useState(japaneseGreetings[0]);
+  const [greeting, setGreeting] = useState(spanishGreetings[0]);
   const [mounted, setMounted] = useState(false);
+  const [placementOpen, setPlacementOpen] = useState(false);
+  const [placedLevel, setPlacedLevel] = useState<Level | null>(null);
+
+  // Interactive spotlight flashcard state
+  const [wordIdx, setWordIdx] = useState(0);
+  const [revealed, setRevealed] = useState(false);
+  const [gradedFeedback, setGradedFeedback] = useState<string | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -122,10 +150,41 @@ export function DashboardContent() {
           ? frenchGreetings
           : japaneseGreetings;
     setGreeting(pool[Math.floor(Math.random() * pool.length)]);
+    setWordIdx(0);
+    setRevealed(false);
+    setGradedFeedback(null);
+    try {
+      const saved = localStorage.getItem(`manabi.placement.${language}`) as Level | null;
+      setPlacedLevel(saved);
+    } catch {
+      setPlacedLevel(null);
+    }
   }, [language]);
 
-  // Totals come from the content manifest rather than a bundled array, so the
-  // dashboard reports the real corpus size without downloading it.
+  const spotlightPool = useMemo(
+    () => levels.flatMap((l) => l.vocab),
+    [levels],
+  );
+  const spotlightWord = spotlightPool.length
+    ? spotlightPool[wordIdx % spotlightPool.length]
+    : null;
+
+  const handleNextWord = () => {
+    if (!spotlightPool.length) return;
+    setWordIdx((i) => (i + 1) % spotlightPool.length);
+    setRevealed(false);
+    setGradedFeedback(null);
+  };
+
+  const handleQuickGrade = (grade: 2 | 4) => {
+    if (!spotlightWord) return;
+    dispatch(gradeCard({ id: `${spotlightWord.id}:meaning`, grade }));
+    setGradedFeedback(grade === 4 ? "Marked known" : "Added to review");
+    window.setTimeout(() => {
+      handleNextWord();
+    }, 550);
+  };
+
   const categories = useMemo(() => {
     const t = manifest?.levels;
     const sum = (k: "vocab" | "kanji" | "verbs" | "grammar") =>
@@ -136,19 +195,36 @@ export function DashboardContent() {
         ([id, c]) => id.startsWith(`${pre}${prefix}`) && c.phase === "review",
       ).length;
 
-    const all = [
+    return [
       {
         label: "Vocabulary",
-        labelJp: language === "es" ? "Vocabulario" : language === "fr" ? "Vocabulaire" : "語彙",
+        labelJp:
+          language === "es"
+            ? "Vocabulario"
+            : language === "fr"
+              ? "Vocabulaire"
+              : "語彙",
         progress: done("vocab:"),
         total: sum("vocab") * 2,
         href: "/vocabulary",
         icon: BookOpen,
       },
-      ...(language === "ja" ? [{ label: "Kanji", labelJp: "漢字", progress: done("kanji:"), total: sum("kanji") * 2, href: "/kanji", icon: Star }] : []),
+      ...(language === "ja"
+        ? [
+            {
+              label: "Kanji",
+              labelJp: "漢字",
+              progress: done("kanji:"),
+              total: sum("kanji") * 2,
+              href: "/kanji",
+              icon: Star,
+            },
+          ]
+        : []),
       {
         label: "Verbs",
-        labelJp: language === "es" ? "Verbos" : language === "fr" ? "Verbes" : "動詞",
+        labelJp:
+          language === "es" ? "Verbos" : language === "fr" ? "Verbes" : "動詞",
         progress: done("verb:"),
         total: sum("verbs") * 7,
         href: "/verbs",
@@ -156,40 +232,52 @@ export function DashboardContent() {
       },
       {
         label: "Grammar",
-        labelJp: language === "es" ? "Gramática" : language === "fr" ? "Grammaire" : "文法",
+        labelJp:
+          language === "es"
+            ? "Gramática"
+            : language === "fr"
+              ? "Grammaire"
+              : "文法",
         progress: done("grammar:"),
         total: sum("grammar"),
         href: "/grammar",
         icon: Sparkles,
       },
     ];
-    return all;
   }, [manifest, cards, language]);
 
   const recentActivities = Array.isArray(activityLog)
     ? activityLog.slice(0, 4)
     : [];
 
+  const langLabel =
+    language === "es" ? "Spanish" : language === "fr" ? "French" : "Japanese";
+
   return (
     <div className="flex flex-col gap-6">
-      {/* ── Welcome & Daily Goal Header ───────────────────────────────────── */}
+      {/* ── Welcome & Interactive Daily Goal Header ───────────────────────── */}
       <div className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-5 shadow-e1 sm:flex-row sm:items-center sm:justify-between md:p-6">
         <div className="min-w-0">
-          <p className="mb-1 text-xs font-medium text-muted-foreground">
-            <span lang="ja" className="font-jp text-foreground">
+          <div className="mb-1 flex flex-wrap items-center gap-2 text-xs font-medium text-muted-foreground">
+            <span lang={language} className={language === "ja" ? "font-jp text-foreground" : "text-foreground"}>
               {greeting.jp}
             </span>
-            <span className="mx-1.5 opacity-50">·</span>
+            <span className="opacity-50">·</span>
             <span>{greeting.en}</span>
-          </p>
+            {activeLevels?.length ? (
+              <Badge variant="secondary" className="ml-1 px-2 py-0 text-[10px]">
+                Scope: {activeLevels.map(formatLevel).join(", ")}
+              </Badge>
+            ) : null}
+          </div>
           <h1 className="text-balance text-2xl font-semibold tracking-tight text-foreground md:text-3xl">
-            Your learning journey continues today.
+            Your {langLabel} workspace.
           </h1>
         </div>
 
         <div className="flex shrink-0 items-center gap-3">
-          {/* Daily goal ring */}
-          <div className="flex items-center gap-3 rounded-xl border border-border bg-card-muted/60 px-3.5 py-2.5">
+          {/* Interactive Daily goal ring */}
+          <div className="flex items-center gap-3 rounded-xl border border-border bg-card-muted/60 px-3.5 py-2">
             <div
               className="relative flex size-10 shrink-0 items-center justify-center"
               role="img"
@@ -222,11 +310,25 @@ export function DashboardContent() {
               <p className="text-sm font-semibold text-foreground" data-numeric>
                 {learnedToday}/{dailyGoal}
               </p>
-              <p className="text-[11px] text-muted-foreground">
-                {learnedToday >= dailyGoal
-                  ? "Goal reached"
-                  : `${dailyGoal - learnedToday} to go`}
-              </p>
+              <div className="mt-0.5 flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => setDailyGoal(Math.max(5, dailyGoal - 5))}
+                  aria-label="Decrease daily goal"
+                  className="flex size-5 items-center justify-center rounded border border-border bg-card text-muted-foreground hover:text-foreground"
+                >
+                  <Minus className="size-3" />
+                </button>
+                <span className="text-[10px] text-muted-foreground">goal</span>
+                <button
+                  type="button"
+                  onClick={() => setDailyGoal(Math.min(50, dailyGoal + 5))}
+                  aria-label="Increase daily goal"
+                  className="flex size-5 items-center justify-center rounded border border-border bg-card text-muted-foreground hover:text-foreground"
+                >
+                  <Plus className="size-3" />
+                </button>
+              </div>
             </div>
           </div>
 
@@ -248,13 +350,158 @@ export function DashboardContent() {
         </div>
       </div>
 
-      {/* Primary Daily Action */}
+      {/* Placement / Skip Ahead Card (for logged-in learners, or sign-in prompt) */}
+      <Card className="border-primary/25 bg-primary-tint/50">
+        <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary">
+              <Compass className="size-5" />
+            </span>
+            <div>
+              <p className="text-sm font-semibold text-foreground">
+                {user
+                  ? placedLevel
+                    ? `${langLabel} Placement: ${formatLevel(placedLevel)}`
+                    : `Already know some ${langLabel}?`
+                  : `Personalize your ${langLabel} path`}
+              </p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                {user
+                  ? placedLevel
+                    ? "Your review deck is tuned to your placement. Retake anytime to adjust."
+                    : "Answer 4 quick questions to unlock higher tiers and skip material you already know."
+                  : "Sign in to take a quick placement check, skip beginner tiers, and sync progress."}
+              </p>
+            </div>
+          </div>
+          {user ? (
+            <Button
+              type="button"
+              size="sm"
+              variant={placedLevel ? "outline" : "default"}
+              onClick={() => setPlacementOpen(true)}
+              className="shrink-0"
+            >
+              {placedLevel ? "Retake Check" : "Take Placement Check"}
+              <ArrowRight className="size-3.5" />
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              size="sm"
+              onClick={openLogin}
+              className="shrink-0"
+            >
+              Log in to Start
+              <ArrowRight className="size-3.5" />
+            </Button>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Active SRS Queue (only shown once cards are started) */}
       <SrsPanel />
 
       {/* Main Workspace Grid */}
       <div className="grid gap-6 lg:grid-cols-12">
-        {/* Left Column: Quick Study + Curriculum Progress */}
+        {/* Left Column: Interactive Word Spotlight + Quick Study + Curriculum Progress */}
         <div className="flex flex-col gap-6 lg:col-span-8">
+          {/* Interactive Quick Flashcard Widget */}
+          {spotlightWord && (
+            <Card className="border-border/90">
+              <CardHeader className="flex flex-row items-center justify-between pb-3">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Sparkles className="size-4 text-primary" />
+                  Quick Practice · {formatLevel(spotlightWord.level)}
+                </CardTitle>
+                <div className="flex items-center gap-1.5">
+                  <SpeakButton text={spotlightWord.word} size="sm" />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleNextWord}
+                    className="h-8 px-2 text-xs"
+                  >
+                    <Shuffle className="size-3.5" />
+                    Next
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-4">
+                <div className="flex flex-col items-start justify-between gap-3 rounded-xl border border-border bg-card-muted/50 p-4 sm:flex-row sm:items-center">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <p
+                        lang={language}
+                        className={
+                          language === "ja"
+                            ? "font-jp text-2xl font-semibold text-foreground"
+                            : "text-2xl font-semibold text-foreground"
+                        }
+                      >
+                        {spotlightWord.word}
+                      </p>
+                      <Badge variant="outline" className="text-[10px]">
+                        {spotlightWord.partOfSpeech}
+                      </Badge>
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {spotlightWord.reading}
+                    </p>
+                    {revealed ? (
+                      <p className="mt-2 text-sm font-medium text-primary">
+                        {spotlightWord.meaning}
+                      </p>
+                    ) : null}
+                  </div>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setRevealed((r) => !r)}
+                    className="shrink-0"
+                  >
+                    {revealed ? (
+                      <>
+                        <EyeOff className="size-3.5" /> Hide meaning
+                      </>
+                    ) : (
+                      <>
+                        <Eye className="size-3.5" /> Reveal meaning
+                      </>
+                    )}
+                  </Button>
+                </div>
+
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-xs text-muted-foreground">
+                    {gradedFeedback ?? "Rate this word to update your review deck"}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleQuickGrade(2)}
+                    >
+                      <BookmarkPlus className="size-3.5" />
+                      Study later
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => handleQuickGrade(4)}
+                    >
+                      <Check className="size-3.5" />I know this
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           <section>
             <h2 className="mb-3 text-base font-semibold text-foreground">
               Quick Study
@@ -330,7 +577,6 @@ export function DashboardContent() {
 
         {/* Right Column: Stats + Quiz Score + Activity */}
         <div className="flex flex-col gap-6 lg:col-span-4">
-          {/* Compact Stats Summary */}
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-base">
@@ -428,7 +674,6 @@ export function DashboardContent() {
             </CardContent>
           </Card>
 
-          {/* Recent Activity */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
@@ -473,6 +718,12 @@ export function DashboardContent() {
           </Card>
         </div>
       </div>
+
+      <PlacementDialog
+        open={placementOpen}
+        onOpenChange={setPlacementOpen}
+        onComplete={(lv) => setPlacedLevel(lv)}
+      />
     </div>
   );
 }

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Zap, ArrowRight, Check, Sparkles } from "lucide-react";
+import { Zap, ArrowRight, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { useSrs } from "@/hooks/use-srs";
@@ -32,39 +32,9 @@ export function SrsPanel() {
   const due = s.dueLearning + s.dueReview;
   const nothingStarted = Object.keys(state.cards).length === 0;
 
-  // First run: name the first move rather than showing four zeroes.
+  // When nothing is started yet, omit the generic starter prompt.
   if (nothingStarted) {
-    return (
-      <Card className="border-primary/30 bg-primary-tint">
-        <CardContent className="flex flex-col gap-4 py-6 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-start gap-3">
-            <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <Sparkles className="size-5" />
-            </span>
-            <div>
-              <p className="text-base font-semibold text-foreground">
-                {language === "es"
-                  ? "Start with Spanish vocabulary"
-                  : language === "fr"
-                    ? "Start with French vocabulary"
-                    : "Start with hiragana"}
-              </p>
-              <p className="mt-0.5 max-w-md text-sm text-secondary-foreground">
-                {language === "ja"
-                  ? "Japanese is written in 104 syllables. Learn those first and everything after it becomes readable."
-                  : "Build your core A1 vocabulary and essential verbs first with spaced repetition."}
-              </p>
-            </div>
-          </div>
-          <Link
-            href={language === "ja" ? "/kana" : "/vocabulary"}
-            className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-lg bg-primary px-5 text-sm font-semibold text-primary-foreground shadow-e1 transition-colors duration-(--dur-1) hover:bg-primary-hover"
-          >
-            Begin <ArrowRight className="size-4" />
-          </Link>
-        </CardContent>
-      </Card>
-    );
+    return null;
   }
 
   const allClear = s.total === 0;
