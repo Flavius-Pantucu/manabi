@@ -126,6 +126,7 @@ function Conjugations({ v }: { v: Verb }) {
 const PAGE = 60;
 
 export function VerbsContent() {
+  const { language } = useLanguage();
   const [level, setLevel] = useState<Level>("N5");
   const [q, setQ] = useState("");
   const [selected, setSelected] = useState<Verb | null>(null);
@@ -172,14 +173,20 @@ export function VerbsContent() {
       <header className="flex flex-col gap-1">
         <h1 className="text-2xl font-semibold tracking-tight">
           Verbs{" "}
-          <span lang="ja" className="font-jp text-base font-normal text-muted-foreground">
-            動詞
+          <span
+            lang={language}
+            className={cn(
+              "text-base font-normal text-muted-foreground",
+              language === "ja" && "font-jp",
+            )}
+          >
+            {language === "es" ? "Verbos" : language === "fr" ? "Verbes" : "動詞"}
           </span>
         </h1>
         <p className="max-w-prose text-sm text-muted-foreground">
-          1,218 verbs in twelve forms each. Conjugations are generated from the
-          godan and ichidan rules, so they are consistent — the drill asks you
-          to produce them, not just recognise them.
+          {language === "ja"
+            ? "1,218 verbs in twelve forms each. Conjugations are generated from the godan and ichidan rules, so they are consistent — the drill asks you to produce them, not just recognise them."
+            : "Essential verbs conjugated across tenses and moods. Study the patterns or drill them actively."}
         </p>
       </header>
 

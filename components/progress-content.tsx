@@ -15,6 +15,7 @@ import { ForecastChart, MaturityBar, ActivityChart } from "@/components/progress
 import { VoiceSettings } from "@/components/voice-settings";
 import { useSrs } from "@/hooks/use-srs";
 import { useLearning } from "@/lib/learning-context";
+import { useLanguage } from "@/lib/language-context";
 import { useAppDispatch, useAppSelector } from "@/lib/store/hooks";
 import { replaceSrsState } from "@/lib/store/features/srs-slice";
 import { DECKS } from "@/lib/srs/decks";
@@ -42,6 +43,7 @@ export function ProgressContent() {
   const srsState = useAppSelector((s) => s.srs);
   const { state, items, contentLoading, stats, forecast, maturity, retention, leeches, reset, updateSettings, toggleDeckEnabled, toggleLevelEnabled } = useSrs();
   const learning = useLearning();
+  const { language, formatLevel } = useLanguage();
   const learningState = useAppSelector((s) => s.learning);
 
   const [mounted, setMounted] = useState(false);
@@ -97,9 +99,11 @@ export function ProgressContent() {
       <header className="flex flex-col gap-1">
         <h1 className="text-2xl font-semibold tracking-tight">
           Progress{" "}
-          <span lang="ja" className="font-jp text-base font-normal text-muted-foreground">
-            統計
-          </span>
+          {language === "ja" && (
+            <span lang="ja" className="font-jp text-base font-normal text-muted-foreground">
+              統計
+            </span>
+          )}
         </h1>
         <p className="max-w-prose text-sm text-muted-foreground">
           How much you&rsquo;re actually retaining, what&rsquo;s coming, and
@@ -138,9 +142,11 @@ export function ProgressContent() {
         <CardHeader>
           <CardTitle className="text-base">
             Collection{" "}
-            <span lang="ja" className="font-jp text-xs font-normal text-muted-foreground">
-              習熟度
-            </span>
+            {language === "ja" && (
+              <span lang="ja" className="font-jp text-xs font-normal text-muted-foreground">
+                習熟度
+              </span>
+            )}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -185,7 +191,13 @@ export function ProgressContent() {
             <ul className="flex flex-col gap-1.5">
               {lee.slice(0, 8).map(({ item, card }) => (
                 <li key={card.id} className="flex items-center gap-3 rounded-lg border border-border px-3 py-2">
-                  <span lang="ja" className="font-jp text-lg font-medium text-foreground">
+                  <span
+                    lang={language}
+                    className={cn(
+                      "text-lg font-medium text-foreground",
+                      language === "ja" && "font-jp",
+                    )}
+                  >
                     {item.prompt}
                   </span>
                   <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
@@ -212,36 +224,40 @@ export function ProgressContent() {
         <CardHeader>
           <CardTitle className="text-base">
             Your path{" "}
-            <span lang="ja" className="font-jp text-xs font-normal text-muted-foreground">
-              学習の道
-            </span>
+            {language === "ja" && (
+              <span lang="ja" className="font-jp text-xs font-normal text-muted-foreground">
+                学習の道
+              </span>
+            )}
           </CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          <div className="flex flex-col gap-1.5">
-            <div className="flex items-baseline justify-between text-sm">
-              <span className="font-medium text-foreground">
-                Kana{" "}
-                <span lang="ja" className="font-jp text-xs text-muted-foreground">
-                  かな
+          {language === "ja" && (
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-baseline justify-between text-sm">
+                <span className="font-medium text-foreground">
+                  Kana{" "}
+                  <span lang="ja" className="font-jp text-xs text-muted-foreground">
+                    かな
+                  </span>
                 </span>
-              </span>
-              <span data-numeric className="text-xs text-muted-foreground">
-                {kana.done}/{kana.total}
-              </span>
+                <span data-numeric className="text-xs text-muted-foreground">
+                  {kana.done}/{kana.total}
+                </span>
+              </div>
+              <div className="h-2 overflow-hidden rounded-full bg-muted">
+                <div
+                  className="h-full rounded-full bg-seq-4 transition-[width] duration-(--dur-4) ease-(--ease-out-expo)"
+                  style={{ width: `${Math.round(kana.ratio * 100)}%` }}
+                />
+              </div>
             </div>
-            <div className="h-2 overflow-hidden rounded-full bg-muted">
-              <div
-                className="h-full rounded-full bg-seq-4 transition-[width] duration-(--dur-4) ease-(--ease-out-expo)"
-                style={{ width: `${Math.round(kana.ratio * 100)}%` }}
-              />
-            </div>
-          </div>
+          )}
 
           {levels.filter((l) => l.total > 0).map((l) => (
             <div key={l.level} className="flex flex-col gap-1.5">
               <div className="flex items-baseline justify-between text-sm">
-                <span className="font-medium text-foreground">{l.level}</span>
+                <span className="font-medium text-foreground">{formatLevel(l.level)}</span>
                 <span data-numeric className="text-xs text-muted-foreground">
                   {l.known}/{l.total} established
                 </span>
@@ -319,7 +335,7 @@ export function ProgressContent() {
                     key={lv}
                     onClick={() => toggleLevelEnabled(lv)}
                     aria-pressed={on}
-                    title={LEVEL_BLURB[lv]}
+                    title={language === "ja" ? LEVEL_BLURB[lv] : formatLevel(lv)}
                     className={cn(
                       "min-h-9 rounded-lg border px-3 text-sm font-medium transition-colors duration-(--dur-1)",
                       on
@@ -327,7 +343,7 @@ export function ProgressContent() {
                         : "border-input text-muted-foreground hover:bg-accent hover:text-accent-foreground",
                     )}
                   >
-                    {lv}
+                    {formatLevel(lv)}
                   </button>
                 );
               })}
@@ -336,15 +352,25 @@ export function ProgressContent() {
 
           <div className="flex flex-col gap-3">
             <p className="text-sm font-medium text-foreground">Active decks</p>
-            {DECKS.map((d) => {
+            {(language === "ja"
+              ? DECKS
+              : DECKS.filter(
+                  (d) =>
+                    d.id !== "kana-hiragana" &&
+                    d.id !== "kana-katakana" &&
+                    d.id !== "kanji",
+                )
+            ).map((d) => {
               const on = !state.settings.disabledDecks.includes(d.id);
               return (
                 <div key={d.id} className="flex items-center justify-between gap-3">
                   <Label htmlFor={`deck-${d.id}`} className="cursor-pointer text-sm font-normal">
                     {d.label}{" "}
-                    <span lang="ja" className="font-jp text-xs text-muted-foreground">
-                      {d.labelJp}
-                    </span>
+                    {language === "ja" && (
+                      <span lang="ja" className="font-jp text-xs text-muted-foreground">
+                        {d.labelJp}
+                      </span>
+                    )}
                   </Label>
                   <Switch
                     id={`deck-${d.id}`}
@@ -358,7 +384,7 @@ export function ProgressContent() {
         </CardContent>
       </Card>
 
-      <VoiceSettings />
+      {language === "ja" && <VoiceSettings />}
 
       {/* Backup */}
       <Card>

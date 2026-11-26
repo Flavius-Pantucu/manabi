@@ -146,12 +146,16 @@ export function normalizeAnswer(s: string): string {
  * Compare a typed answer against the accepted set. Romaji input is converted
  * first, so "tabemono" matches たべもの.
  */
-export function answerMatches(typed: string, accepts: string[]): boolean {
+export function answerMatches(
+  typed: string,
+  accepts: string[],
+  allowRomaji = true,
+): boolean {
   const raw = normalizeAnswer(typed);
-  const asKana = normalizeAnswer(toKana(typed));
+  const asKana = allowRomaji ? normalizeAnswer(toKana(typed)) : raw;
   return accepts.some((a) => {
     const n = normalizeAnswer(a);
-    return n === raw || n === asKana;
+    return n === raw || (allowRomaji && n === asKana);
   });
 }
 
@@ -177,14 +181,18 @@ export function editDistance(a: string, b: string): number {
 }
 
 /** True when the answer is one edit away — worth a "nearly" nudge. */
-export function isNearMiss(typed: string, accepts: string[]): boolean {
-  const asKana = normalizeAnswer(toKana(typed));
+export function isNearMiss(
+  typed: string,
+  accepts: string[],
+  allowRomaji = true,
+): boolean {
   const raw = normalizeAnswer(typed);
+  const asKana = allowRomaji ? normalizeAnswer(toKana(typed)) : raw;
   return accepts.some((a) => {
     const n = normalizeAnswer(a);
     if (!n) return false;
     return (
-      (editDistance(asKana, n) === 1 && asKana.length > 1) ||
+      (allowRomaji && editDistance(asKana, n) === 1 && asKana.length > 1) ||
       (editDistance(raw, n) === 1 && raw.length > 1)
     );
   });

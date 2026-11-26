@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ReviewSession } from "@/components/review-session";
 import { useSrs } from "@/hooks/use-srs";
+import { useLanguage } from "@/lib/language-context";
 import { DECKS, type DeckId } from "@/lib/srs/decks";
 
 const TONE_BG: Record<string, string> = {
@@ -18,10 +19,21 @@ const TONE_BG: Record<string, string> = {
 
 export function ReviewContent() {
   const { stats } = useSrs();
+  const { language } = useLanguage();
   const [started, setStarted] = useState(false);
   const [deck, setDeck] = useState<DeckId | undefined>(undefined);
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
+
+  const visibleDecks =
+    language === "ja"
+      ? DECKS
+      : DECKS.filter(
+          (d) =>
+            d.id !== "kana-hiragana" &&
+            d.id !== "kana-katakana" &&
+            d.id !== "kanji",
+        );
 
   if (started) {
     return (
@@ -46,8 +58,14 @@ export function ReviewContent() {
       <header className="flex flex-col gap-1">
         <h1 className="text-2xl font-semibold tracking-tight">
           Review{" "}
-          <span lang="ja" className="font-jp text-base font-normal text-muted-foreground">
-            復習
+          <span
+            lang={language}
+            className={cn(
+              "text-base font-normal text-muted-foreground",
+              language === "ja" && "font-jp",
+            )}
+          >
+            {language === "es" ? "Repaso" : language === "fr" ? "Révision" : "復習"}
           </span>
         </h1>
         <p className="max-w-prose text-sm text-muted-foreground">
@@ -107,7 +125,7 @@ export function ReviewContent() {
       <div>
         <h2 className="mb-3 text-sm font-semibold text-foreground">By deck</h2>
         <div className="grid gap-2.5 sm:grid-cols-2">
-          {DECKS.map((d) => {
+          {visibleDecks.map((d) => {
             const s = mounted ? stats(d.id) : { total: 0, dueLearning: 0, dueReview: 0, newRemaining: 0, newAvailable: 0 };
             return (
               <button
@@ -119,8 +137,8 @@ export function ReviewContent() {
                   s.total > 0 ? "hover:border-primary hover:bg-accent" : "opacity-55",
                 )}
               >
-                <span className={cn("flex size-10 shrink-0 items-center justify-center rounded-lg font-jp text-sm font-bold", TONE_BG[d.tone])}>
-                  {d.labelJp.charAt(0)}
+                <span className={cn("flex size-10 shrink-0 items-center justify-center rounded-lg text-sm font-bold", language === "ja" && "font-jp", TONE_BG[d.tone])}>
+                  {language === "ja" ? d.labelJp.charAt(0) : d.label.charAt(0)}
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block text-sm font-semibold text-foreground">{d.label}</span>

@@ -11,15 +11,22 @@ import { LevelFilter } from "@/components/level-filter";
 import { ReviewSession } from "@/components/review-session";
 import { useLevelContent } from "@/hooks/use-level-content";
 import { useContent } from "@/lib/content/provider";
+import { useLanguage, type Language } from "@/lib/language-context";
 import { loadGrammar } from "@/lib/content/loader";
 import type { GrammarPoint, Level } from "@/lib/content/types";
 
-function Point({ g }: { g: GrammarPoint }) {
+function Point({ g, language }: { g: GrammarPoint; language: Language }) {
   return (
     <Card>
       <CardContent className="flex flex-col gap-4 py-5">
         <div>
-          <h3 lang="ja" className="font-jp text-xl font-semibold text-foreground">
+          <h3
+            lang={language}
+            className={cn(
+              "text-xl font-semibold text-foreground",
+              language === "ja" && "font-jp",
+            )}
+          >
             {g.pattern}
           </h3>
           <p className="mt-0.5 text-sm text-foreground">{g.meaning}</p>
@@ -29,17 +36,35 @@ function Point({ g }: { g: GrammarPoint }) {
           <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
             Formation
           </p>
-          <p lang="ja" className="mt-0.5 font-jp text-sm text-foreground">{g.formation}</p>
+          <p
+            lang={language}
+            className={cn(
+              "mt-0.5 text-sm text-foreground",
+              language === "ja" && "font-jp",
+            )}
+          >
+            {g.formation}
+          </p>
         </div>
 
         <div className="flex flex-col gap-2.5">
           {g.examples.map((ex, i) => (
             <div key={i} className="border-l border-border pl-3">
               <p className="flex items-start gap-2">
-                <span lang="ja" className="font-jp text-base text-foreground">{ex.japanese}</span>
+                <span
+                  lang={language}
+                  className={cn(
+                    "text-base text-foreground",
+                    language === "ja" && "font-jp",
+                  )}
+                >
+                  {ex.japanese}
+                </span>
                 <SpeakButton text={ex.japanese} size="sm" className="mt-0.5" label="Play example" />
               </p>
-              <p className="text-xs italic text-muted-foreground">{ex.romaji}</p>
+              {ex.romaji && (
+                <p className="text-xs italic text-muted-foreground">{ex.romaji}</p>
+              )}
               <p className="text-sm text-muted-foreground">{ex.english}</p>
             </div>
           ))}
@@ -49,7 +74,9 @@ function Point({ g }: { g: GrammarPoint }) {
           <div className="rounded-lg border border-ai/30 bg-ai/8 px-3 py-2.5">
             <p className="flex items-center gap-1.5 text-xs font-semibold text-ai">
               <ArrowRightLeft className="size-3.5" />
-              <span lang="ja" className="font-jp">{g.comparison.pattern}</span>
+              <span lang={language} className={language === "ja" ? "font-jp" : undefined}>
+                {g.comparison.pattern}
+              </span>
             </p>
             <p className="mt-1 text-sm text-foreground">{g.comparison.explanation}</p>
           </div>
@@ -60,6 +87,7 @@ function Point({ g }: { g: GrammarPoint }) {
 }
 
 export function GrammarContent() {
+  const { language } = useLanguage();
   const [level, setLevel] = useState<Level>("N5");
   const [q, setQ] = useState("");
   const [drilling, setDrilling] = useState(false);
@@ -104,13 +132,20 @@ export function GrammarContent() {
       <header className="flex flex-col gap-1">
         <h1 className="text-2xl font-semibold tracking-tight">
           Grammar{" "}
-          <span lang="ja" className="font-jp text-base font-normal text-muted-foreground">
-            文法
+          <span
+            lang={language}
+            className={cn(
+              "text-base font-normal text-muted-foreground",
+              language === "ja" && "font-jp",
+            )}
+          >
+            {language === "es" ? "Gramática" : language === "fr" ? "Grammaire" : "文法"}
           </span>
         </h1>
         <p className="max-w-prose text-sm text-muted-foreground">
-          155 patterns from N5 to N1, each with how it is formed, worked
-          examples, and — where it matters — what it is easily confused with.
+          {language === "ja"
+            ? "155 patterns from N5 to N1, each with how it is formed, worked examples, and — where it matters — what it is easily confused with."
+            : "Core grammar patterns from A1 to C1, each with how it is formed, worked examples, and key comparisons."}
         </p>
       </header>
 
@@ -157,7 +192,7 @@ export function GrammarContent() {
         </p>
       ) : (
         <div className="grid gap-3 md:grid-cols-2">
-          {filtered.map((g) => <Point key={g.id} g={g} />)}
+          {filtered.map((g) => <Point key={g.id} g={g} language={language} />)}
         </div>
       )}
     </div>

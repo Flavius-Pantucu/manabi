@@ -9,6 +9,7 @@ import { Progress } from "@/components/ui/progress";
 import { LevelFilter } from "@/components/level-filter";
 import { useLevelContent } from "@/hooks/use-level-content";
 import { useLearning } from "@/lib/learning-context";
+import { useLanguage } from "@/lib/language-context";
 import { loadVocab, loadKanji, loadVerbs, loadGrammar } from "@/lib/content/loader";
 import { generateQuiz, KIND_LABELS, type QuizKind, type QuizQuestion } from "@/lib/quiz/generate";
 import { speak } from "@/lib/speech";
@@ -16,11 +17,16 @@ import { triggerSakura } from "@/lib/confetti";
 import type { Level } from "@/lib/content/types";
 
 const ALL_KINDS = Object.keys(KIND_LABELS) as QuizKind[];
+const LATIN_KINDS: QuizKind[] = ["vocab-meaning", "verb-form", "grammar-meaning"];
 const LENGTHS = [10, 20, 30];
 
+const emptyKanjiLoader = async () => [];
+
 export function QuizContent() {
+  const { language, formatLevel } = useLanguage();
+  const availableKinds = language === "ja" ? ALL_KINDS : LATIN_KINDS;
   const [level, setLevel] = useState<Level>("N5");
-  const [kinds, setKinds] = useState<QuizKind[]>(ALL_KINDS);
+  const [kinds, setKinds] = useState<QuizKind[]>(availableKinds);
   const [length, setLength] = useState(10);
   const [questions, setQuestions] = useState<QuizQuestion[] | null>(null);
   const [i, setI] = useState(0);
@@ -29,7 +35,7 @@ export function QuizContent() {
   const { addQuizScore } = useLearning();
 
   const vocab = useLevelContent(level, loadVocab);
-  const kanji = useLevelContent(level, loadKanji);
+  const kanji = useLevelContent(level, language === "ja" ? loadKanji : emptyKanjiLoader);
   const verbs = useLevelContent(level, loadVerbs);
   const grammar = useLevelContent(level, loadGrammar);
   const loading = vocab.loading || kanji.loading || verbs.loading || grammar.loading;
@@ -40,9 +46,9 @@ export function QuizContent() {
   );
 
   const start = useCallback(() => {
-    const qs = generateQuiz(src, { count: length, kinds, seed: Date.now() });
+    const qs = generateQuiz(src, { count: length, kinds, seed: Date.now(), language });
     setQuestions(qs); setI(0); setPicked(null); setScore(0);
-  }, [src, length, kinds]);
+  }, [src, length, kinds, language]);
 
   useEffect(() => { setQuestions(null); }, [level]);
 
@@ -52,7 +58,7 @@ export function QuizContent() {
   useEffect(() => {
     if (!done || !questions?.length) return;
     const pct = Math.round((score / questions.length) * 100);
-    addQuizScore(`gen-${level}-${Date.now()}`, `${level} quiz`, pct);
+    addQuizScore(`gen-${level}-${Date.now()}`, `${formatLevel(level)} quiz`, pct);
     if (pct >= 80) triggerSakura();
     // record once per completed quiz
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -66,8 +72,14 @@ export function QuizContent() {
         <header className="flex flex-col gap-1">
           <h1 className="text-2xl font-semibold tracking-tight">
             Quiz{" "}
-            <span lang="ja" className="font-jp text-base font-normal text-muted-foreground">
-              クイズ
+            <span
+              lang={language}
+              className={cn(
+                "text-base font-normal text-muted-foreground",
+                language === "ja" && "font-jp",
+              )}
+            >
+              {language === "es" || language === "fr" ? "Examen" : "クイズ"}
             </span>
           </h1>
           <p className="max-w-prose text-sm text-muted-foreground">
@@ -87,7 +99,7 @@ export function QuizContent() {
             <div className="flex flex-col gap-2">
               <p className="text-sm font-medium text-foreground">Question types</p>
               <div className="flex flex-wrap gap-1.5">
-                {ALL_KINDS.map((k) => {
+                {availableKinds.map((k) => {
                   const on = kinds.includes(k);
                   return (
                     <button
@@ -160,7 +172,7 @@ export function QuizContent() {
           <div>
             <p data-numeric className="text-4xl font-semibold text-foreground">{pct}%</p>
             <p className="mt-1 text-sm text-muted-foreground">
-              <span data-numeric>{score}</span> of {questions.length} correct · {level}
+              <span data-numeric>{score}</span> of {questions.length} correct · {formatLevel(level)}
             </p>
           </div>
           <div className="flex flex-wrap justify-center gap-2">
@@ -190,7 +202,7 @@ export function QuizContent() {
             <span className="text-xs font-medium text-muted-foreground">{q.instruction}</span>
             <span className="flex items-center gap-2">
               <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                {q.level}
+                {formatLevel(q.level)}
               </span>
               {q.speak && (
                 <button

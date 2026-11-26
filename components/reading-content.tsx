@@ -8,11 +8,12 @@ import { Button } from "@/components/ui/button";
 import { LevelFilter } from "@/components/level-filter";
 import { useLevelContent } from "@/hooks/use-level-content";
 import { useContent } from "@/lib/content/provider";
+import { useLanguage, type Language } from "@/lib/language-context";
 import { loadReading } from "@/lib/content/loader";
 import { speak, stopSpeaking } from "@/lib/speech";
 import type { Level, ReadingPassage } from "@/lib/content/types";
 
-function Passage({ p }: { p: ReadingPassage }) {
+function Passage({ p, language }: { p: ReadingPassage; language: Language }) {
   const [showTranslation, setShowTranslation] = useState(false);
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const [checked, setChecked] = useState(false);
@@ -33,7 +34,13 @@ function Passage({ p }: { p: ReadingPassage }) {
       <Card>
         <CardContent className="flex flex-col gap-4 py-6">
           <div className="flex items-start justify-between gap-3">
-            <h2 lang="ja" className="font-jp text-xl font-semibold text-foreground">
+            <h2
+              lang={language}
+              className={cn(
+                "text-xl font-semibold text-foreground",
+                language === "ja" && "font-jp",
+              )}
+            >
               {p.title}
             </h2>
             <div className="flex shrink-0 gap-1">
@@ -60,7 +67,13 @@ function Passage({ p }: { p: ReadingPassage }) {
             </div>
           </div>
 
-          <p lang="ja" className="font-jp text-lg leading-loose text-foreground">
+          <p
+            lang={language}
+            className={cn(
+              "text-lg leading-loose text-foreground",
+              language === "ja" && "font-jp",
+            )}
+          >
             {p.japanese}
           </p>
 
@@ -79,12 +92,26 @@ function Passage({ p }: { p: ReadingPassage }) {
             <div className="grid gap-1.5 sm:grid-cols-2">
               {p.words.map((w) => (
                 <div key={w.word} className="flex items-baseline gap-2 rounded-md px-2 py-1.5 hover:bg-accent">
-                  <span lang="ja" className="font-jp text-sm font-medium text-foreground">
+                  <span
+                    lang={language}
+                    className={cn(
+                      "text-sm font-medium text-foreground",
+                      language === "ja" && "font-jp",
+                    )}
+                  >
                     {w.word}
                   </span>
-                  <span lang="ja" className="font-jp text-xs text-muted-foreground">
-                    {w.reading}
-                  </span>
+                  {w.reading && w.reading !== w.word && (
+                    <span
+                      lang={language}
+                      className={cn(
+                        "text-xs text-muted-foreground",
+                        language === "ja" && "font-jp",
+                      )}
+                    >
+                      {w.reading}
+                    </span>
+                  )}
                   <span className="truncate text-xs text-muted-foreground">— {w.meaning}</span>
                 </div>
               ))}
@@ -157,6 +184,7 @@ function Passage({ p }: { p: ReadingPassage }) {
 }
 
 export function ReadingContent() {
+  const { language } = useLanguage();
   const [level, setLevel] = useState<Level>("N5");
   const [idx, setIdx] = useState(0);
   const { manifest } = useContent();
@@ -176,8 +204,14 @@ export function ReadingContent() {
       <header className="flex flex-col gap-1">
         <h1 className="text-2xl font-semibold tracking-tight">
           Reading{" "}
-          <span lang="ja" className="font-jp text-base font-normal text-muted-foreground">
-            読解
+          <span
+            lang={language}
+            className={cn(
+              "text-base font-normal text-muted-foreground",
+              language === "ja" && "font-jp",
+            )}
+          >
+            {language === "es" ? "Lectura" : language === "fr" ? "Lecture" : "読解"}
           </span>
         </h1>
         <p className="max-w-prose text-sm text-muted-foreground">
@@ -217,11 +251,11 @@ export function ReadingContent() {
                     : "border-input text-muted-foreground hover:bg-accent hover:text-accent-foreground",
                 )}
               >
-                <span lang="ja" className="font-jp">{p.title}</span>
+                <span lang={language} className={language === "ja" ? "font-jp" : undefined}>{p.title}</span>
               </button>
             ))}
           </div>
-          {data[idx] && <Passage p={data[idx]} />}
+          {data[idx] && <Passage p={data[idx]} language={language} />}
         </>
       )}
     </div>

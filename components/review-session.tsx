@@ -11,6 +11,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { useSrs } from "@/hooks/use-srs";
 import { useLearning } from "@/lib/learning-context";
+import { useLanguage } from "@/lib/language-context";
 import { previewIntervals, GRADE, type Grade } from "@/lib/srs/scheduler";
 import { toKana, answerMatches, isNearMiss } from "@/lib/srs/romaji";
 import type { DeckId, ReviewItem } from "@/lib/srs/decks";
@@ -44,6 +45,7 @@ interface Props {
 export function ReviewSession({ deck, limit, title = "Review" }: Props) {
   const { buildQueue, grade } = useSrs();
   const { autoPlayAudio } = useLearning();
+  const { language } = useLanguage();
 
   // The queue is snapshotted once. Rebuilding it after every grade would make
   // cards jump around underneath the learner as their due times change.
@@ -117,10 +119,11 @@ export function ReviewSession({ deck, limit, title = "Review" }: Props) {
     const value = item.mode === "choice" ? (choice ?? "") : typed;
     if (!value.trim()) return;
 
+    const allowRomaji = language === "ja";
     const ok = item.mode === "choice"
       ? value === item.answer
-      : answerMatches(value, item.accepts);
-    const near = !ok && item.mode !== "choice" && isNearMiss(value, item.accepts);
+      : answerMatches(value, item.accepts, allowRomaji);
+    const near = !ok && item.mode !== "choice" && isNearMiss(value, item.accepts, allowRomaji);
 
     setOutcome(ok ? "correct" : near ? "near" : "wrong");
     setRevealed(true);
@@ -304,21 +307,28 @@ export function ReviewSession({ deck, limit, title = "Review" }: Props) {
                 value={typed}
                 disabled={revealed}
                 onChange={(e) => setTyped(e.target.value)}
-                placeholder={item.mode === "reading" ? "type the reading — romaji becomes kana" : "type in romaji or kana"}
+                placeholder={
+                  language === "ja"
+                    ? item.mode === "reading"
+                      ? "type the reading — romaji becomes kana"
+                      : "type in romaji or kana"
+                    : "Type your answer…"
+                }
                 autoComplete="off"
                 autoCapitalize="off"
                 spellCheck={false}
                 className="h-14 w-full rounded-lg border border-input bg-card px-4 text-center text-2xl font-medium text-foreground outline-none transition-colors duration-(--dur-1) focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:opacity-70"
               />
-              {/* Live kana preview: the learner sees what they are actually
-                  submitting, which is the whole point of the romaji bridge. */}
-              <p
-                lang="ja"
-                className="min-h-6 text-center font-jp text-lg text-muted-foreground"
-                aria-live="polite"
-              >
-                {typed && !revealed ? toKana(typed) : ""}
-              </p>
+              {/* Live kana preview only applies to Japanese romaji input */}
+              {language === "ja" && (
+                <p
+                  lang="ja"
+                  className="min-h-6 text-center font-jp text-lg text-muted-foreground"
+                  aria-live="polite"
+                >
+                  {typed && !revealed ? toKana(typed) : ""}
+                </p>
+              )}
             </div>
           )}
 
@@ -342,11 +352,23 @@ export function ReviewSession({ deck, limit, title = "Review" }: Props) {
                   <><X className="size-4 text-destructive" /> <span className="text-destructive">Not quite</span></>
                 )}
               </p>
-              <p lang="ja" className="mt-1.5 font-jp text-2xl font-semibold text-foreground">
+              <p
+                lang={language === "ja" ? "ja" : undefined}
+                className={cn(
+                  "mt-1.5 text-2xl font-semibold text-foreground",
+                  language === "ja" && "font-jp",
+                )}
+              >
                 {item.answer}
               </p>
               {item.answerReading && item.answerReading !== item.answer && (
-                <p lang="ja" className="font-jp text-sm text-muted-foreground">
+                <p
+                  lang={language === "ja" ? "ja" : undefined}
+                  className={cn(
+                    "text-sm text-muted-foreground",
+                    language === "ja" && "font-jp",
+                  )}
+                >
                   {item.answerReading}
                 </p>
               )}

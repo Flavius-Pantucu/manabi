@@ -14,6 +14,7 @@ import { ReviewSession } from "@/components/review-session";
 import { PitchAccent } from "@/components/pitch-accent";
 import { useLevelContent } from "@/hooks/use-level-content";
 import { useContent } from "@/lib/content/provider";
+import { useLanguage } from "@/lib/language-context";
 import { loadVocab } from "@/lib/content/loader";
 import { speak } from "@/lib/speech";
 import { PITCH } from "@/lib/data/pitch";
@@ -33,6 +34,7 @@ const tone = (p: string) => POS_TONE[p] ?? "bg-muted text-muted-foreground";
 // ── Flashcards ──────────────────────────────────────────────────────────────
 
 function Flashcards({ words }: { words: Vocab[] }) {
+  const { language } = useLanguage();
   const [i, setI] = useState(0);
   const [flipped, setFlipped] = useState(false);
   const w = words[i];
@@ -42,7 +44,7 @@ function Flashcards({ words }: { words: Vocab[] }) {
     setFlipped(false);
     setI((v) => (v + d + words.length) % words.length);
   };
-  const pitch = PITCH[w.reading]?.[w.word];
+  const pitch = language === "ja" ? PITCH[w.reading]?.[w.word] : undefined;
 
   return (
     <div className="flex flex-col items-center gap-4">
@@ -55,16 +57,30 @@ function Flashcards({ words }: { words: Vocab[] }) {
           <CardContent className="flex flex-col items-center justify-center gap-3 py-8 text-center">
             {!flipped ? (
               <>
-                <p lang="ja" className="font-jp text-5xl font-semibold text-foreground">
+                <p
+                  lang={language}
+                  className={cn(
+                    "font-semibold text-foreground",
+                    language === "ja" ? "font-jp text-5xl" : "text-4xl",
+                  )}
+                >
                   {w.word}
                 </p>
                 <p className="text-sm text-muted-foreground">Tap to flip</p>
               </>
             ) : (
               <>
-                <p lang="ja" className="font-jp text-2xl text-muted-foreground">
-                  {w.reading}
-                </p>
+                {w.reading && w.reading !== w.word && (
+                  <p
+                    lang={language}
+                    className={cn(
+                      "text-2xl text-muted-foreground",
+                      language === "ja" && "font-jp",
+                    )}
+                  >
+                    {w.reading}
+                  </p>
+                )}
                 <p className="text-xl font-semibold text-foreground">{w.meaning}</p>
                 {w.altMeanings?.length ? (
                   <p className="text-sm text-muted-foreground">
@@ -108,6 +124,7 @@ function Flashcards({ words }: { words: Vocab[] }) {
 const PAGE = 60;
 
 function WordList({ words }: { words: Vocab[] }) {
+  const { language } = useLanguage();
   const [shown, setShown] = useState(PAGE);
   const slice = words.slice(0, shown);
 
@@ -122,16 +139,22 @@ function WordList({ words }: { words: Vocab[] }) {
   return (
     <div className="flex flex-col gap-2">
       {slice.map((w) => {
-        const pitch = PITCH[w.reading]?.[w.word];
+        const pitch = language === "ja" ? PITCH[w.reading]?.[w.word] : undefined;
         return (
           <div
             key={w.id}
             className="flex items-center gap-3 rounded-lg border border-border bg-card px-4 py-2.5"
           >
             <div className="min-w-0 flex-1">
-              <p lang="ja" className="font-jp text-lg font-medium text-foreground">
+              <p
+                lang={language}
+                className={cn(
+                  "text-lg font-medium text-foreground",
+                  language === "ja" && "font-jp",
+                )}
+              >
                 {w.word}
-                {w.reading !== w.word && (
+                {w.reading && w.reading !== w.word && (
                   <span className="ml-2 text-sm font-normal text-muted-foreground">
                     {w.reading}
                   </span>
@@ -164,6 +187,7 @@ function WordList({ words }: { words: Vocab[] }) {
 // ── Page ────────────────────────────────────────────────────────────────────
 
 export function VocabularyContent() {
+  const { language } = useLanguage();
   const [level, setLevel] = useState<Level>("N5");
   const [q, setQ] = useState("");
   const [drilling, setDrilling] = useState(false);
@@ -209,13 +233,20 @@ export function VocabularyContent() {
       <header className="flex flex-col gap-1">
         <h1 className="text-2xl font-semibold tracking-tight">
           Vocabulary{" "}
-          <span lang="ja" className="font-jp text-base font-normal text-muted-foreground">
-            語彙
+          <span
+            lang={language}
+            className={cn(
+              "text-base font-normal text-muted-foreground",
+              language === "ja" && "font-jp",
+            )}
+          >
+            {language === "es" ? "Vocabulario" : language === "fr" ? "Vocabulaire" : "語彙"}
           </span>
         </h1>
         <p className="max-w-prose text-sm text-muted-foreground">
-          Every JLPT level, with readings, part of speech and pitch accent where
-          it has been verified.
+          {language === "ja"
+            ? "Every JLPT level, with readings, part of speech and pitch accent where it has been verified."
+            : "Every CEFR level from A1 to C1, with parts of speech, pronunciation, and flashcards."}
         </p>
       </header>
 
@@ -227,7 +258,11 @@ export function VocabularyContent() {
             <Input
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="Search kanji, kana or meaning…"
+              placeholder={
+                language === "ja"
+                  ? "Search kanji, kana or meaning…"
+                  : "Search word or meaning…"
+              }
               className="pl-9 pr-9"
             />
             {q && (

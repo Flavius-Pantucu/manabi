@@ -10,7 +10,7 @@
  * bridge, Tuesday, expensive} tests nothing.
  */
 
-import type { GrammarPoint, Kanji, Level, Verb, Vocab } from "@/lib/content/types";
+import type { GrammarPoint, Kanji, Language, Level, Verb, Vocab } from "@/lib/content/types";
 
 export type QuizKind =
   | "vocab-meaning"
@@ -25,7 +25,7 @@ export interface QuizQuestion {
   kind: QuizKind;
   level: Level;
   prompt: string;
-  promptLang: "ja" | "en";
+  promptLang: Language | "en";
   instruction: string;
   options: string[];
   answer: number;
@@ -78,14 +78,34 @@ function shuffleWithAnswer(
   return { options: opts, answer: opts.indexOf(correct) };
 }
 
-const VERB_FORM_LABELS: Record<string, string> = {
-  masu: "ます-form (polite)",
-  te: "て-form",
-  ta: "た-form (plain past)",
-  nai: "ない-form (plain negative)",
-  potential: "potential form",
-  volitional: "volitional form",
-  conditional_ba: "ば-conditional",
+const VERB_FORM_LABELS_BY_LANG: Record<Language, Record<string, string>> = {
+  ja: {
+    masu: "ます-form (polite)",
+    te: "て-form",
+    ta: "た-form (plain past)",
+    nai: "ない-form (plain negative)",
+    potential: "potential form",
+    volitional: "volitional form",
+    conditional_ba: "ば-conditional",
+  },
+  es: {
+    presente_yo: "present (yo)",
+    presente_tu: "present (tú)",
+    presente_el: "present (él/ella)",
+    preterito_yo: "preterite (yo)",
+    imperfecto_yo: "imperfect (yo)",
+    futuro_yo: "future (yo)",
+    subjuntivo_yo: "subjunctive (yo)",
+  },
+  fr: {
+    presente_je: "present (je)",
+    presente_tu: "present (tu)",
+    presente_il: "present (il/elle)",
+    passe_compose_je: "passé composé (je)",
+    imparfait_je: "imperfect (je)",
+    futur_je: "future (je)",
+    subjonctif_je: "subjunctive (je)",
+  },
 };
 
 export function generateQuiz(
@@ -94,12 +114,18 @@ export function generateQuiz(
     count = 12,
     kinds,
     seed = Date.now(),
-  }: { count?: number; kinds?: QuizKind[]; seed?: number } = {},
+    language = "ja",
+  }: { count?: number; kinds?: QuizKind[]; seed?: number; language?: Language } = {},
 ): QuizQuestion[] {
   const rand = rng(seed);
   const available: QuizKind[] = [];
-  if (src.vocab.length >= 4) available.push("vocab-meaning", "vocab-reading");
-  if (src.kanji.length >= 4) available.push("kanji-meaning", "kanji-reading");
+  if (src.vocab.length >= 4) {
+    available.push("vocab-meaning");
+    if (language === "ja") available.push("vocab-reading");
+  }
+  if (language === "ja" && src.kanji.length >= 4) {
+    available.push("kanji-meaning", "kanji-reading");
+  }
   if (src.verbs.length >= 4) available.push("verb-form");
   if (src.grammar.length >= 4) available.push("grammar-meaning");
 
@@ -114,7 +140,7 @@ export function generateQuiz(
 
   while (out.length < count && guard++ < count * 25) {
     const kind = pool[Math.floor(rand() * pool.length)];
-    const q = makeOne(kind, src, rand);
+    const q = makeOne(kind, src, rand, language);
     if (!q || used.has(q.id)) continue;
     used.add(q.id);
     out.push(q);
@@ -126,6 +152,7 @@ function makeOne(
   kind: QuizKind,
   src: QuizSource,
   rand: () => number,
+  language: Language,
 ): QuizQuestion | null {
   switch (kind) {
     case "vocab-meaning": {
@@ -141,11 +168,14 @@ function makeOne(
         kind,
         level: w.level,
         prompt: w.word,
-        promptLang: "ja",
+        promptLang: language,
         instruction: "What does this word mean?",
         options,
         answer,
-        explanation: `${w.word}（${w.reading}）— ${w.meaning}`,
+        explanation:
+          language === "ja" && w.reading
+            ? `${w.word}（${w.reading}）— ${w.meaning}`
+            : `${w.word} — ${w.meaning}`,
         speak: w.word,
       };
     }
@@ -224,7 +254,8 @@ function makeOne(
     case "verb-form": {
       const [v] = sample(src.verbs, 1, rand);
       if (!v) return null;
-      const forms = Object.keys(VERB_FORM_LABELS).filter(
+      const formLabels = VERB_FORM_LABELS_BY_LANG[language];
+      const forms = Object.keys(formLabels).filter(
         (f) => v.conjugations[f],
       );
       if (!forms.length) return null;
@@ -242,8 +273,8 @@ function makeOne(
         kind,
         level: v.level,
         prompt: v.dictionary,
-        promptLang: "ja",
-        instruction: `Which is the ${VERB_FORM_LABELS[form]}?`,
+        promptLang: language,
+        instruction: `Which is the ${formLabels[form]}?`,
         options,
         answer,
         explanation: `${v.dictionary} (${v.group}, ${v.meaning}) → ${correct}`,
@@ -263,7 +294,7 @@ function makeOne(
         kind,
         level: g.level,
         prompt: g.pattern,
-        promptLang: "ja",
+        promptLang: language,
         instruction: "What does this pattern mean?",
         options,
         answer,
