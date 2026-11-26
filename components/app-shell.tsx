@@ -282,7 +282,7 @@ function SidebarBody({
   const pathname = usePathname();
   const { theme, setTheme } = useTheme();
   const { user, isLoading } = useAuth();
-  const { language } = useLanguage();
+  const { language, setLanguage } = useLanguage();
   const { showFurigana, autoPlayAudio, toggleFurigana, toggleAutoPlay } =
     useLearning();
   const [mounted, setMounted] = useState(false);
@@ -292,6 +292,44 @@ function SidebarBody({
     <>
       <nav aria-label="Study areas" className="flex-1 overflow-y-auto px-3 py-4">
         <div className="flex flex-col gap-5">
+          <div className="flex flex-col gap-1">
+            <p className="px-2.5 pb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/75">
+              Language
+            </p>
+            <Select
+              value={language}
+              onValueChange={(v) => setLanguage(v as Language)}
+            >
+              <SelectTrigger
+                aria-label="Select learning language"
+                className="w-full justify-between rounded-lg border border-border bg-card/60 px-2.5 text-sm font-medium text-foreground shadow-none hover:bg-accent data-[size=default]:h-9.5 dark:bg-card/60 dark:hover:bg-accent"
+              >
+                <span className="flex items-center gap-2">
+                  <span aria-hidden="true">
+                    {language === "es" ? "🇪🇸" : language === "fr" ? "🇫🇷" : "🇯🇵"}
+                  </span>
+                  <span>
+                    {language === "es" ? "Spanish" : language === "fr" ? "French" : "Japanese"}
+                  </span>
+                </span>
+              </SelectTrigger>
+              <SelectContent align="start">
+                <SelectItem value="es">
+                  <span aria-hidden="true">🇪🇸</span>
+                  Spanish
+                </SelectItem>
+                <SelectItem value="fr">
+                  <span aria-hidden="true">🇫🇷</span>
+                  French
+                </SelectItem>
+                <SelectItem value="ja">
+                  <span aria-hidden="true">🇯🇵</span>
+                  Japanese
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
           {navGroups.map((group) => {
             const visibleItems = group.items.filter((item) => {
               if (item.adminOnly && user?.role !== "admin") return false;
@@ -451,7 +489,7 @@ function LanguageSelect({ align = "end" }: { align?: "start" | "end" }) {
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { user, isLoading } = useAuth();
-  const { language } = useLanguage();
+  const { language, setLanguage } = useLanguage();
   const { open, defaultTab, openLogin, openRegister, setOpen } =
     useAuthDialog();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -574,16 +612,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               Manabi
             </span>
           </Link>
-          <div className="flex items-center gap-1">
-            <LanguageSelect align="end" />
-            <button
-              onClick={() => setIsSidebarCollapsed(true)}
-              className="rounded-lg p-1.5 text-muted-foreground transition-colors duration-(--dur-1) hover:bg-accent hover:text-accent-foreground"
-              aria-label="Collapse sidebar"
-            >
-              <PanelLeftClose className="size-5" />
-            </button>
-          </div>
+          <button
+            onClick={() => setIsSidebarCollapsed(true)}
+            className="rounded-lg p-1.5 text-muted-foreground transition-colors duration-(--dur-1) hover:bg-accent hover:text-accent-foreground"
+            aria-label="Collapse sidebar"
+          >
+            <PanelLeftClose className="size-5" />
+          </button>
         </div>
         <SidebarBody onLogin={openLogin} onRegister={openRegister} />
       </aside>
