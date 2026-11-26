@@ -22,7 +22,7 @@ export function ManabiMark({
 
   return (
     <Image
-      src="/icon.png"
+      src="/icon.png?v=3"
       alt={label ?? ""}
       width={192}
       height={192}

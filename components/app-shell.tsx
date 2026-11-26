@@ -702,18 +702,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* Global Command Menu (⌘K) */}
       <CommandMenu />
 
-      {/* Bottom navigation dock — always visible on mobile, and on desktop when sidebar is collapsed */}
+      {/* Bottom navigation dock — 90% width on mobile, and on desktop when sidebar is collapsed */}
       <nav
         aria-label="Primary"
         className={cn(
-          "safe-bottom fixed bottom-3 left-1/2 z-50 w-max max-w-[calc(100vw-1rem)] -translate-x-1/2 md:bottom-6",
+          "safe-bottom fixed bottom-3 left-1/2 z-50 w-[90vw] -translate-x-1/2 md:bottom-6 md:w-max md:max-w-[calc(100vw-2rem)]",
           "transition-[opacity,transform] duration-(--dur-3) ease-(--ease-out-expo)",
           isSidebarCollapsed
             ? "pointer-events-auto translate-y-0 scale-100 opacity-100"
             : "pointer-events-auto translate-y-0 scale-100 opacity-100 md:pointer-events-none md:translate-y-6 md:scale-95 md:opacity-0",
         )}
       >
-        <div className="glass-strong flex items-center gap-0.5 rounded-2xl border p-1 sm:gap-1 sm:p-1.5">
+        <div className="glass-strong flex w-full items-center justify-around gap-0.5 rounded-2xl border p-1.5 md:w-auto md:justify-center md:gap-1">
           <button
             onClick={() => setIsSidebarCollapsed(false)}
             className="hidden min-w-13 flex-col items-center justify-center gap-1 rounded-xl px-2.5 py-1.5 text-muted-foreground transition-colors duration-(--dur-1) hover:bg-accent hover:text-accent-foreground md:flex"
