@@ -47,8 +47,8 @@ export const metadata: Metadata = {
   applicationName: "Manabi",
   manifest: "/manifest.json",
   icons: {
-    icon: [{ url: "/icon.png", type: "image/png", sizes: "192x192" }],
-    apple: [{ url: "/apple-touch-icon.png", type: "image/png", sizes: "180x180" }],
+    icon: [{ url: "/icon.png?v=3", type: "image/png", sizes: "192x192" }],
+    apple: [{ url: "/apple-touch-icon.png?v=3", type: "image/png", sizes: "180x180" }],
   },
   openGraph: {
     type: "website",
@@ -99,8 +99,8 @@ export default function RootLayout({
         <ReduxProvider>
           <ThemeProvider
             attribute="class"
-            defaultTheme="light"
-            enableSystem
+            defaultTheme="dark"
+            enableSystem={false}
             disableTransitionOnChange
           >
             <AuthProvider>

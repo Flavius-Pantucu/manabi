@@ -465,11 +465,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <header className="safe-top [--safe-top-pad:0.5rem] sticky top-0 z-30 flex items-center gap-2 border-b glass-panel px-3 pb-2 md:hidden">
           <SheetTrigger asChild>
             <button
-              className="flex min-h-10 items-center justify-center gap-1.5 rounded-xl px-2.5 text-xs font-medium text-foreground transition-colors duration-(--dur-1) hover:bg-accent hover:text-accent-foreground"
+              className="flex size-10 items-center justify-center rounded-xl text-foreground transition-colors duration-(--dur-1) hover:bg-accent hover:text-accent-foreground"
               aria-label="Open navigation"
             >
-              <Menu className="size-4" />
-              <span>Menu</span>
+              <Menu className="size-5" />
             </button>
           </SheetTrigger>
 
@@ -507,10 +506,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               ) : (
                 <button
                   onClick={openLogin}
-                  className="flex min-h-10 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-foreground transition-colors duration-(--dur-1) hover:bg-accent hover:text-accent-foreground"
+                  aria-label="Log in"
+                  className="flex size-10 items-center justify-center rounded-xl text-foreground transition-colors duration-(--dur-1) hover:bg-accent hover:text-accent-foreground"
                 >
-                  <LogIn className="size-4" />
-                  Log in
+                  <LogIn className="size-5" />
+                  <span className="sr-only">Log in</span>
                 </button>
               ))}
           </div>
@@ -686,7 +686,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div
           key={language}
           className={cn(
-            "animate-lang-swap mx-auto px-4 py-6 md:px-8 md:py-8 transition-all duration-500 ease-in-out",
+            "animate-lang-swap mx-auto px-4 pb-24 pt-6 md:px-8 md:py-8 transition-all duration-500 ease-in-out",
             isSidebarCollapsed ? "max-w-7xl" : "max-w-5xl",
           )}
         >
@@ -702,23 +702,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* Global Command Menu (⌘K) */}
       <CommandMenu />
 
-      {/* Floating pill — desktop only, and only while the rail is collapsed.
-          It is what puts the sidebar back, plus a shortlist of destinations so
-          a collapsed rail is not a dead end. Mobile used to share it; mobile
-          now has the drawer above, which carries the whole nav rather than
-          five of it. */}
+      {/* Bottom navigation dock — always visible on mobile, and on desktop when sidebar is collapsed */}
       <nav
         aria-label="Primary"
         className={cn(
-          "safe-bottom fixed bottom-6 left-1/2 z-50 hidden -translate-x-1/2 md:block",
+          "safe-bottom fixed bottom-3 left-1/2 z-50 w-max max-w-[calc(100vw-1rem)] -translate-x-1/2 md:bottom-6",
           "transition-[opacity,transform] duration-(--dur-3) ease-(--ease-out-expo)",
-          "pointer-events-none translate-y-6 scale-95 opacity-0",
-          isSidebarCollapsed &&
-            "pointer-events-auto translate-y-0 scale-100 opacity-100",
+          isSidebarCollapsed
+            ? "pointer-events-auto translate-y-0 scale-100 opacity-100"
+            : "pointer-events-auto translate-y-0 scale-100 opacity-100 md:pointer-events-none md:translate-y-6 md:scale-95 md:opacity-0",
         )}
-        inert={!isSidebarCollapsed || undefined}
       >
-        <div className="glass-strong flex items-center gap-1 rounded-2xl border p-1.5">
+        <div className="glass-strong flex items-center gap-0.5 rounded-2xl border p-1 sm:gap-1 sm:p-1.5">
           <button
             onClick={() => setIsSidebarCollapsed(false)}
             className="hidden min-w-13 flex-col items-center justify-center gap-1 rounded-xl px-2.5 py-1.5 text-muted-foreground transition-colors duration-(--dur-1) hover:bg-accent hover:text-accent-foreground md:flex"
@@ -743,7 +738,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 href={item.href}
                 aria-current={isActive ? "page" : undefined}
                 className={cn(
-                  "flex min-w-13 flex-col items-center justify-center gap-1 rounded-xl px-2.5 py-1.5",
+                  "flex min-w-12 flex-col items-center justify-center gap-1 rounded-xl px-2 py-1.5 sm:min-w-13 sm:px-2.5",
                   "transition-colors duration-(--dur-1)",
                   isActive
                     ? "bg-primary-tint text-primary"
@@ -758,12 +753,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             );
           })}
 
-          <div aria-hidden="true" className="mx-1 h-7 w-px bg-border" />
+          <div aria-hidden="true" className="mx-0.5 hidden h-7 w-px bg-border sm:mx-1 md:block" />
 
           {user ? (
             <Link
               href="/profile"
-              className="flex min-w-13 flex-col items-center justify-center gap-1 rounded-xl px-2.5 py-1.5 transition-colors duration-(--dur-1) hover:bg-accent"
+              className="hidden min-w-13 flex-col items-center justify-center gap-1 rounded-xl px-2.5 py-1.5 transition-colors duration-(--dur-1) hover:bg-accent md:flex"
             >
               <AvatarBadge
                 initials={user.avatarInitials}
@@ -779,7 +774,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           ) : (
             <button
               onClick={openLogin}
-              className="flex min-w-13 flex-col items-center justify-center gap-1 rounded-xl px-2.5 py-1.5 text-muted-foreground transition-colors duration-(--dur-1) hover:bg-accent hover:text-accent-foreground"
+              className="hidden min-w-13 flex-col items-center justify-center gap-1 rounded-xl px-2.5 py-1.5 text-muted-foreground transition-colors duration-(--dur-1) hover:bg-accent hover:text-accent-foreground md:flex"
             >
               <LogIn className="size-4" />
               <span className="text-[10px] font-medium leading-none">
