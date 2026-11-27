@@ -28,6 +28,9 @@ import {
   Repeat,
   Shapes,
   TrendingUp,
+  Headphones,
+  MessageSquareQuote,
+  Layers,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
@@ -83,6 +86,7 @@ const navGroups: NavGroup[] = [
       { href: "/grammar", label: "Grammar", icon: BookOpen },
       { href: "/verbs", label: "Verbs", icon: Languages },
       { href: "/reading", label: "Reading", icon: FileText },
+      { href: "/phrases", label: "Phrasebook", icon: MessageSquareQuote },
       { href: "/kana", label: "Kana", icon: Shapes, jaOnly: true },
       { href: "/kanji", label: "Kanji", icon: PenLine, jaOnly: true },
     ],
@@ -91,6 +95,8 @@ const navGroups: NavGroup[] = [
     title: "Practice",
     items: [
       { href: "/quiz", label: "Quiz", icon: HelpCircle },
+      { href: "/listening", label: "Listening", icon: Headphones },
+      { href: "/decks", label: "Custom Decks", icon: Layers },
       { href: "/admin", label: "Admin", icon: ShieldCheck, adminOnly: true },
     ],
   },
