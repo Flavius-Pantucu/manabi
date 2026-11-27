@@ -10,26 +10,44 @@ import {
   X,
   Trophy,
   Headphones,
+  AlertCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { LevelFilter } from "@/components/level-filter";
 import { useLevelContent } from "@/hooks/use-level-content";
 import { useContent } from "@/lib/content/provider";
 import { useLanguage } from "@/lib/language-context";
 import { loadVocab } from "@/lib/content/loader";
-import { speak } from "@/lib/speech";
+import { PHRASES } from "@/lib/data/phrases";
+import {
+  speak,
+  listVoicesForLanguage,
+  onVoicesReady,
+  getPreferredVoiceURI,
+  setPreferredVoiceURI,
+} from "@/lib/speech";
 import { answerMatches } from "@/lib/srs/romaji";
 import { triggerSakura } from "@/lib/confetti";
-import type { Level, Vocab } from "@/lib/content/types";
+import type { Level } from "@/lib/content/types";
 
 type ListeningMode = "choice" | "dictation";
+type ListeningSource = "phrases" | "words";
 
 interface ListeningItem {
-  vocab: Vocab;
+  text: string;
+  reading?: string;
+  meaning: string;
   options: string[];
   answerIdx: number;
 }
@@ -47,10 +65,32 @@ export function ListeningContent() {
   const { language, formatLevel } = useLanguage();
   const { manifest } = useContent();
   const [level, setLevel] = useState<Level>("N5");
+  const [source, setSource] = useState<ListeningSource>("phrases");
   const [mode, setMode] = useState<ListeningMode>("choice");
   const [length, setLength] = useState(10);
 
   const { data: vocab, loading, error } = useLevelContent(level, loadVocab);
+
+  // Voice list & selection
+  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const [voicesLoaded, setVoicesLoaded] = useState(false);
+  const [selectedVoiceURI, setSelectedVoiceURI] = useState<string>("");
+
+  useEffect(() => {
+    const sync = () => {
+      const list = listVoicesForLanguage(language);
+      setVoices(list);
+      setVoicesLoaded(true);
+      const saved = getPreferredVoiceURI(language);
+      if (saved && list.some((v) => v.voiceURI === saved)) {
+        setSelectedVoiceURI(saved);
+      } else {
+        setSelectedVoiceURI(list[0]?.voiceURI ?? "");
+      }
+    };
+    sync();
+    return onVoicesReady(sync);
+  }, [language]);
 
   const [session, setSession] = useState<ListeningItem[] | null>(null);
   const [idx, setIdx] = useState(0);
@@ -68,29 +108,53 @@ export function ListeningContent() {
   }, [manifest]);
 
   const startSession = useCallback(() => {
-    if (vocab.length < 4) return;
-    const pool = shuffle(vocab).slice(0, Math.min(length, vocab.length));
-    const items: ListeningItem[] = pool.map((v) => {
-      const distractors = shuffle(
-        vocab.filter((x) => x.meaning !== v.meaning),
-      )
-        .slice(0, 3)
-        .map((x) => x.meaning);
-      const options = shuffle([v.meaning, ...distractors]);
-      return {
-        vocab: v,
-        options,
-        answerIdx: options.indexOf(v.meaning),
-      };
-    });
-    setSession(items);
+    if (source === "phrases") {
+      const pool = shuffle(PHRASES[language] ?? []).slice(0, length);
+      if (pool.length < 4) return;
+      const all = PHRASES[language] ?? [];
+      const items: ListeningItem[] = pool.map((p) => {
+        const distractors = shuffle(
+          all.filter((x) => x.meaning !== p.meaning),
+        )
+          .slice(0, 3)
+          .map((x) => x.meaning);
+        const options = shuffle([p.meaning, ...distractors]);
+        return {
+          text: p.phrase,
+          reading: p.reading,
+          meaning: p.meaning,
+          options,
+          answerIdx: options.indexOf(p.meaning),
+        };
+      });
+      setSession(items);
+    } else {
+      if (vocab.length < 4) return;
+      const pool = shuffle(vocab).slice(0, Math.min(length, vocab.length));
+      const items: ListeningItem[] = pool.map((v) => {
+        const distractors = shuffle(
+          vocab.filter((x) => x.meaning !== v.meaning),
+        )
+          .slice(0, 3)
+          .map((x) => x.meaning);
+        const options = shuffle([v.meaning, ...distractors]);
+        return {
+          text: v.word,
+          reading: v.reading,
+          meaning: v.meaning,
+          options,
+          answerIdx: options.indexOf(v.meaning),
+        };
+      });
+      setSession(items);
+    }
     setIdx(0);
     setPicked(null);
     setTyped("");
     setChecked(false);
     setIsCorrect(false);
     setScore(0);
-  }, [vocab, length]);
+  }, [source, language, length, vocab]);
 
   useEffect(() => {
     setSession(null);
@@ -100,10 +164,13 @@ export function ListeningContent() {
   const done = session !== null && idx >= session.length;
 
   useEffect(() => {
-    if (current && !done) {
-      speak(current.vocab.word, { lang: language });
-    }
-  }, [current, done, language]);
+    if (!current || done || !voicesLoaded) return;
+    // Slight delay lets UI settle and avoids clipping the first syllable.
+    const t = window.setTimeout(() => {
+      speak(current.text, { lang: language, rate: 0.9 });
+    }, 120);
+    return () => window.clearTimeout(t);
+  }, [current, done, language, voicesLoaded]);
 
   useEffect(() => {
     if (done && session && session.length > 0) {
@@ -111,9 +178,25 @@ export function ListeningContent() {
     }
   }, [done, session, score]);
 
-  const playAudio = (rate = 1) => {
+  const playAudio = (rate = 0.9) => {
     if (!current) return;
-    speak(current.vocab.word, { lang: language, rate });
+    speak(current.text, { lang: language, rate });
+  };
+
+  const handleVoiceChange = (uri: string) => {
+    setSelectedVoiceURI(uri);
+    setPreferredVoiceURI(uri, language);
+    const sample =
+      current?.text ??
+      PHRASES[language]?.[0]?.phrase ??
+      (language === "es"
+        ? "Hola, ¿cómo estás?"
+        : language === "fr"
+          ? "Bonjour, comment allez-vous ?"
+          : language === "it"
+            ? "Ciao, come stai?"
+            : "こんにちは");
+    speak(sample, { lang: language, rate: 0.9 });
   };
 
   const handlePick = (optionIdx: number) => {
@@ -130,8 +213,8 @@ export function ListeningContent() {
     if (!current || checked || !typed.trim()) return;
     const accepts =
       language === "ja"
-        ? [current.vocab.word, current.vocab.reading].filter(Boolean)
-        : [current.vocab.word];
+        ? [current.text, current.reading ?? ""].filter(Boolean)
+        : [current.text];
     const ok = answerMatches(typed, accepts, language === "ja");
     setIsCorrect(ok);
     setChecked(true);
@@ -169,17 +252,59 @@ export function ListeningContent() {
             </span>
           </h1>
           <p className="max-w-prose text-sm text-muted-foreground">
-            Train your ear at normal or slow speed. Pick the meaning you hear or
-            switch to dictation to type the exact word.
+            Train your ear with full phrases or individual words at clear
+            learning speed (0.9×) or slow playback (0.65×).
           </p>
         </header>
+
+        {voicesLoaded && voices.length === 0 && (
+          <div className="flex items-start gap-2.5 rounded-xl border border-kincha/40 bg-kincha/10 px-4 py-3 text-sm text-foreground">
+            <AlertCircle className="mt-0.5 size-4 shrink-0 text-kincha" />
+            <span>
+              No native speech voice for this language was detected in your
+              browser. Audio may sound unclear until a system voice is installed.
+            </span>
+          </div>
+        )}
 
         <Card>
           <CardContent className="flex flex-col gap-5 py-6">
             <div className="flex flex-col gap-2">
-              <p className="text-sm font-medium text-foreground">Level</p>
-              <LevelFilter value={level} onChange={setLevel} counts={counts} />
+              <p className="text-sm font-medium text-foreground">Content</p>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => setSource("phrases")}
+                  aria-pressed={source === "phrases"}
+                  className={cn(
+                    "min-h-9 rounded-lg border px-3 text-sm font-medium transition-colors",
+                    source === "phrases"
+                      ? "border-primary bg-primary-tint text-secondary-foreground"
+                      : "border-input text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+                  )}
+                >
+                  Full phrases (Recommended)
+                </button>
+                <button
+                  onClick={() => setSource("words")}
+                  aria-pressed={source === "words"}
+                  className={cn(
+                    "min-h-9 rounded-lg border px-3 text-sm font-medium transition-colors",
+                    source === "words"
+                      ? "border-primary bg-primary-tint text-secondary-foreground"
+                      : "border-input text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+                  )}
+                >
+                  Vocabulary words
+                </button>
+              </div>
             </div>
+
+            {source === "words" && (
+              <div className="flex flex-col gap-2">
+                <p className="text-sm font-medium text-foreground">Level</p>
+                <LevelFilter value={level} onChange={setLevel} counts={counts} />
+              </div>
+            )}
 
             <div className="flex flex-col gap-2">
               <p className="text-sm font-medium text-foreground">Practice mode</p>
@@ -211,6 +336,24 @@ export function ListeningContent() {
               </div>
             </div>
 
+            {voices.length > 0 && (
+              <div className="flex flex-col gap-2">
+                <p className="text-sm font-medium text-foreground">Voice</p>
+                <Select value={selectedVoiceURI} onValueChange={handleVoiceChange}>
+                  <SelectTrigger className="w-full sm:max-w-sm">
+                    <SelectValue placeholder="Choose a voice" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {voices.map((v) => (
+                      <SelectItem key={v.voiceURI} value={v.voiceURI}>
+                        {v.name} ({v.lang})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             <div className="flex flex-col gap-2">
               <p className="text-sm font-medium text-foreground">Length</p>
               <div className="flex gap-2">
@@ -226,24 +369,26 @@ export function ListeningContent() {
                         : "border-input text-muted-foreground hover:bg-accent hover:text-accent-foreground",
                     )}
                   >
-                    {n} words
+                    {n} items
                   </button>
                 ))}
               </div>
             </div>
 
-            {error ? (
+            {error && source === "words" ? (
               <p className="text-sm text-destructive">{error}</p>
             ) : (
               <Button
                 size="lg"
                 onClick={startSession}
-                disabled={loading || vocab.length < 4}
+                disabled={source === "words" && (loading || vocab.length < 4)}
               >
                 <Play className="size-4" />
-                {loading
+                {source === "words" && loading
                   ? "Loading audio pool…"
-                  : `Start ${formatLevel(level)} listening`}
+                  : source === "phrases"
+                    ? "Start phrase listening"
+                    : `Start ${formatLevel(level)} listening`}
               </Button>
             )}
           </CardContent>
@@ -276,7 +421,7 @@ export function ListeningContent() {
               {pct}%
             </p>
             <p className="mt-1 text-sm text-muted-foreground">
-              {score} of {session.length} correct · {formatLevel(level)}
+              {score} of {session.length} correct
             </p>
           </div>
           <div className="flex flex-wrap justify-center gap-2">
@@ -296,7 +441,7 @@ export function ListeningContent() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center gap-3">
+      <div className="flex items-center justify-between gap-3">
         <Progress value={(idx / session.length) * 100} className="h-2 flex-1" />
         <span data-numeric className="text-xs font-medium text-muted-foreground">
           {idx + 1} / {session.length}
@@ -311,23 +456,41 @@ export function ListeningContent() {
               : "Listen and type what you hear"}
           </p>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center justify-center gap-3">
             <Button
               size="lg"
               className="h-14 gap-2 rounded-full px-7 text-base"
-              onClick={() => playAudio(1)}
+              onClick={() => playAudio(0.9)}
             >
-              <Volume2 className="size-5" /> Play
+              <Volume2 className="size-5" /> Play (0.9×)
             </Button>
             <Button
               variant="outline"
               size="lg"
               className="h-14 gap-2 rounded-full px-5"
-              onClick={() => playAudio(0.7)}
+              onClick={() => playAudio(0.65)}
             >
-              <Turtle className="size-4" /> Slow
+              <Turtle className="size-4" /> Slow (0.65×)
             </Button>
           </div>
+
+          {voices.length > 1 && (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span>Voice:</span>
+              <Select value={selectedVoiceURI} onValueChange={handleVoiceChange}>
+                <SelectTrigger size="sm" className="w-auto max-w-56">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {voices.map((v) => (
+                    <SelectItem key={v.voiceURI} value={v.voiceURI}>
+                      {v.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           {mode === "choice" ? (
             <div className="grid w-full gap-2 sm:grid-cols-2">
@@ -417,19 +580,18 @@ export function ListeningContent() {
                   language === "ja" && "font-jp",
                 )}
               >
-                {current.vocab.word}
+                {current.text}
               </p>
-              {current.vocab.reading &&
-                current.vocab.reading !== current.vocab.word && (
-                  <p className="text-xs text-muted-foreground">
-                    {current.vocab.reading}
-                  </p>
-                )}
+              {current.reading && current.reading !== current.text && (
+                <p className="text-xs text-muted-foreground">
+                  {current.reading}
+                </p>
+              )}
               <p className="mt-0.5 text-sm text-muted-foreground">
-                {current.vocab.meaning}
+                {current.meaning}
               </p>
               <Button className="mt-3" onClick={next}>
-                {idx + 1 >= session.length ? "Finish" : "Next word"}
+                {idx + 1 >= session.length ? "Finish" : "Next"}
               </Button>
             </div>
           )}

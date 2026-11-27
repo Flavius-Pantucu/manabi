@@ -112,14 +112,31 @@ const IS_FR = /^fr(-|_|$)/i;
 const IS_IT = /^it(-|_|$)/i;
 
 export function listVoicesForLanguage(lang: "es" | "fr" | "it" | "ja" = "ja"): SpeechSynthesisVoice[] {
+  bind();
   const re = lang === "es" ? IS_ES : lang === "fr" ? IS_FR : lang === "it" ? IS_IT : IS_JA;
+  const preferredRe =
+    lang === "es"
+      ? /^es(-|_)(ES|MX|US|419)$/i
+      : lang === "fr"
+        ? /^fr(-|_)(FR|CA)$/i
+        : lang === "it"
+          ? /^it(-|_)(IT|CH)$/i
+          : /^ja(-|_)JP$/i;
+
+  const score = (v: SpeechSynthesisVoice) => {
+    let s = 0;
+    const n = v.name.toLowerCase();
+    if (/natural|neural|premium|enhanced|siri|wavenet/.test(n)) s += 100;
+    else if (n.includes("google")) s += 60;
+    if (preferredRe.test(v.lang)) s += 30;
+    if (v.localService) s += 10;
+    if (/compact|espeak/.test(n)) s -= 50;
+    return s;
+  };
+
   return refresh()
     .filter((v) => re.test(v.lang))
-    .sort((a, b) =>
-      a.localService === b.localService
-        ? a.name.localeCompare(b.name)
-        : a.localService ? -1 : 1,
-    );
+    .sort((a, b) => score(b) - score(a) || a.name.localeCompare(b.name));
 }
 
 export function listJapaneseVoices(): SpeechSynthesisVoice[] {
@@ -136,18 +153,24 @@ export function voiceStatus(): VoiceStatus {
 
 // ── preference ──────────────────────────────────────────────────────────────
 
-export function getPreferredVoiceURI(): string | null {
+const prefKey = (lang: "es" | "fr" | "it" | "ja" = "ja") =>
+  lang === "ja" ? PREF_KEY : `${PREF_KEY}.${lang}`;
+
+export function getPreferredVoiceURI(lang: "es" | "fr" | "it" | "ja" = "ja"): string | null {
   try {
-    return localStorage.getItem(PREF_KEY);
+    return localStorage.getItem(prefKey(lang));
   } catch {
     return null;
   }
 }
 
-export function setPreferredVoiceURI(uri: string | null) {
+export function setPreferredVoiceURI(
+  uri: string | null,
+  lang: "es" | "fr" | "it" | "ja" = "ja",
+) {
   try {
-    if (uri) localStorage.setItem(PREF_KEY, uri);
-    else localStorage.removeItem(PREF_KEY);
+    if (uri) localStorage.setItem(prefKey(lang), uri);
+    else localStorage.removeItem(prefKey(lang));
   } catch {
     /* private mode — the session default still applies */
   }
@@ -181,26 +204,13 @@ export function resolveVoice(lang: "es" | "fr" | "it" | "ja" = "ja"): SpeechSynt
   const list = listVoicesForLanguage(lang);
   if (!list.length) return undefined;
 
-  if (lang === "ja") {
-    const pref = getPreferredVoiceURI();
-    if (pref) {
-      const match = list.find((v) => v.voiceURI === pref);
-      if (match) return match;
-    }
+  const pref = getPreferredVoiceURI(lang);
+  if (pref) {
+    const match = list.find((v) => v.voiceURI === pref);
+    if (match) return match;
   }
-  const preferredRe =
-    lang === "es"
-      ? /^es(-|_)(ES|MX|US|419)$/i
-      : lang === "fr"
-        ? /^fr(-|_)(FR|CA)$/i
-        : lang === "it"
-          ? /^it(-|_)(IT|CH)$/i
-          : /^ja(-|_)JP$/i;
-  return (
-    list.find((v) => v.localService && preferredRe.test(v.lang)) ??
-    list.find((v) => v.localService) ??
-    list[0]
-  );
+  // listVoicesForLanguage already sorts highest-quality voices first
+  return list[0];
 }
 
 /** True when the only Japanese voices available are synthesised over the network. */
