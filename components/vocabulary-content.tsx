@@ -240,7 +240,13 @@ export function VocabularyContent() {
               language === "ja" && "font-jp",
             )}
           >
-            {language === "es" ? "Vocabulario" : language === "fr" ? "Vocabulaire" : "語彙"}
+            {language === "es"
+              ? "Vocabulario"
+              : language === "fr"
+                ? "Vocabulaire"
+                : language === "it"
+                  ? "Vocabolario"
+                  : "語彙"}
           </span>
         </h1>
         <p className="max-w-prose text-sm text-muted-foreground">

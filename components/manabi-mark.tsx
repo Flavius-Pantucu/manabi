@@ -30,6 +30,7 @@ export function ManabiMark({
       className={cn(
         "size-6 shrink-0 object-contain transition-[filter] duration-300 ease-(--ease-out-expo)",
         language === "es" && "hue-rotate-[138deg] saturate-[1.15]",
+        language === "it" && "hue-rotate-[-105deg] saturate-[1.1]",
         language === "ja" && "hue-rotate-[95deg] saturate-[1.1]",
         className,
       )}

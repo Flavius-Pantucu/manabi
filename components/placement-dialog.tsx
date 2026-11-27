@@ -77,6 +77,37 @@ const QUESTIONS: Record<Language, PlacementQuestion[]> = {
       answer: 2,
     },
   ],
+  it: [
+    {
+      level: "N5",
+      prompt: "What does «Vorrei un caffè e dell'acqua» mean?",
+      options: [
+        "I have coffee and water",
+        "I would like a coffee and some water",
+        "I don't drink coffee",
+        "The water is cold",
+      ],
+      answer: 1,
+    },
+    {
+      level: "N4",
+      prompt: "Choose the correct passato prossimo: «Ieri Maria ___ presto.»",
+      options: ["ha arrivata", "è arrivata", "arrivava", "arriverà"],
+      answer: 1,
+    },
+    {
+      level: "N3",
+      prompt: "Complete with the subjunctive: «Bisogna che tu ___ questo libro.»",
+      options: ["leggi", "leggerai", "legga", "leggevi"],
+      answer: 2,
+    },
+    {
+      level: "N2",
+      prompt: "Which completes the 2nd conditional? «Se ___ più tempo, studierei l'italiano.»",
+      options: ["ho", "avrei", "avessi", "avrò"],
+      answer: 2,
+    },
+  ],
   ja: [
     {
       level: "N5",
@@ -188,7 +219,13 @@ export function PlacementDialog({
   };
 
   const langName =
-    language === "es" ? "Spanish" : language === "fr" ? "French" : "Japanese";
+    language === "es"
+      ? "Spanish"
+      : language === "fr"
+        ? "French"
+        : language === "it"
+          ? "Italian"
+          : "Japanese";
 
   return (
     <Dialog

@@ -139,7 +139,13 @@ export function GrammarContent() {
               language === "ja" && "font-jp",
             )}
           >
-            {language === "es" ? "Gramática" : language === "fr" ? "Grammaire" : "文法"}
+            {language === "es"
+              ? "Gramática"
+              : language === "fr"
+                ? "Grammaire"
+                : language === "it"
+                  ? "Grammatica"
+                  : "文法"}
           </span>
         </h1>
         <p className="max-w-prose text-sm text-muted-foreground">

@@ -23,8 +23,12 @@ const GROUP_TONE: Record<string, string> = {
   "-er": "bg-matsuba/12 text-matsuba",
   "-ir": "bg-fuji/12 text-fuji",
   "-re": "bg-kincha/12 text-kincha",
+  "-are": "bg-ai/12 text-ai",
+  "-ere": "bg-matsuba/12 text-matsuba",
+  "-ire": "bg-fuji/12 text-fuji",
   "Irregular": "bg-shu/12 text-shu",
   "Irrégulier": "bg-shu/12 text-shu",
+  "Irregolare": "bg-shu/12 text-shu",
 };
 
 const FORMS_JA: { key: string; label: string; jp: string }[] = [
@@ -72,9 +76,31 @@ const FORMS_FR: { key: string; label: string; jp: string }[] = [
   { key: "participe", label: "Past Participle", jp: "Participe" },
 ];
 
+const FORMS_IT: { key: string; label: string; jp: string }[] = [
+  { key: "presente_io", label: "Present (io)", jp: "Presente" },
+  { key: "presente_tu", label: "Present (tu)", jp: "Presente" },
+  { key: "presente_lui", label: "Present (lui/lei)", jp: "Presente" },
+  { key: "presente_noi", label: "Present (noi)", jp: "Presente" },
+  { key: "presente_loro", label: "Present (loro)", jp: "Presente" },
+  { key: "passato_prossimo_io", label: "Passato prossimo (io)", jp: "Passato prossimo" },
+  { key: "imperfetto_io", label: "Imperfect (io)", jp: "Imperfetto" },
+  { key: "futuro_io", label: "Future (io)", jp: "Futuro" },
+  { key: "condizionale_io", label: "Conditional (io)", jp: "Condizionale" },
+  { key: "congiuntivo_io", label: "Subjunctive (io)", jp: "Congiuntivo" },
+  { key: "imperativo_tu", label: "Imperative (tu)", jp: "Imperativo" },
+  { key: "participio", label: "Past Participle", jp: "Participio" },
+];
+
 function Conjugations({ v }: { v: Verb }) {
   const { language } = useLanguage();
-  const forms = language === "es" ? FORMS_ES : language === "fr" ? FORMS_FR : FORMS_JA;
+  const forms =
+    language === "es"
+      ? FORMS_ES
+      : language === "fr"
+        ? FORMS_FR
+        : language === "it"
+          ? FORMS_IT
+          : FORMS_JA;
   return (
     <Card>
       <CardContent className="flex flex-col gap-4 py-6">
@@ -180,7 +206,13 @@ export function VerbsContent() {
               language === "ja" && "font-jp",
             )}
           >
-            {language === "es" ? "Verbos" : language === "fr" ? "Verbes" : "動詞"}
+            {language === "es"
+              ? "Verbos"
+              : language === "fr"
+                ? "Verbes"
+                : language === "it"
+                  ? "Verbi"
+                  : "動詞"}
           </span>
         </h1>
         <p className="max-w-prose text-sm text-muted-foreground">

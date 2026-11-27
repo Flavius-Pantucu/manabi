@@ -211,7 +211,13 @@ export function ReadingContent() {
               language === "ja" && "font-jp",
             )}
           >
-            {language === "es" ? "Lectura" : language === "fr" ? "Lecture" : "読解"}
+            {language === "es"
+              ? "Lectura"
+              : language === "fr"
+                ? "Lecture"
+                : language === "it"
+                  ? "Lettura"
+                  : "読解"}
           </span>
         </h1>
         <p className="max-w-prose text-sm text-muted-foreground">

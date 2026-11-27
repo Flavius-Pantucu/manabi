@@ -306,10 +306,22 @@ function SidebarBody({
               >
                 <span className="flex items-center gap-2">
                   <span aria-hidden="true">
-                    {language === "es" ? "🇪🇸" : language === "fr" ? "🇫🇷" : "🇯🇵"}
+                    {language === "es"
+                      ? "🇪🇸"
+                      : language === "fr"
+                        ? "🇫🇷"
+                        : language === "it"
+                          ? "🇮🇹"
+                          : "🇯🇵"}
                   </span>
                   <span>
-                    {language === "es" ? "Spanish" : language === "fr" ? "French" : "Japanese"}
+                    {language === "es"
+                      ? "Spanish"
+                      : language === "fr"
+                        ? "French"
+                        : language === "it"
+                          ? "Italian"
+                          : "Japanese"}
                   </span>
                 </span>
               </SelectTrigger>
@@ -321,6 +333,10 @@ function SidebarBody({
                 <SelectItem value="fr">
                   <span aria-hidden="true">🇫🇷</span>
                   French
+                </SelectItem>
+                <SelectItem value="it">
+                  <span aria-hidden="true">🇮🇹</span>
+                  Italian
                 </SelectItem>
                 <SelectItem value="ja">
                   <span aria-hidden="true">🇯🇵</span>
@@ -465,7 +481,13 @@ function LanguageSelect({ align = "end" }: { align?: "start" | "end" }) {
         className="w-auto gap-1 border-0 bg-transparent px-2 py-0 shadow-none ring-0 hover:bg-accent focus-visible:ring-0 data-[size=default]:h-10 dark:bg-transparent dark:hover:bg-accent"
       >
         <span className="text-lg leading-none" aria-hidden="true">
-          {language === "es" ? "🇪🇸" : language === "fr" ? "🇫🇷" : "🇯🇵"}
+          {language === "es"
+            ? "🇪🇸"
+            : language === "fr"
+              ? "🇫🇷"
+              : language === "it"
+                ? "🇮🇹"
+                : "🇯🇵"}
         </span>
       </SelectTrigger>
       <SelectContent align={align}>
@@ -476,6 +498,10 @@ function LanguageSelect({ align = "end" }: { align?: "start" | "end" }) {
         <SelectItem value="fr">
           <span aria-hidden="true">🇫🇷</span>
           French
+        </SelectItem>
+        <SelectItem value="it">
+          <span aria-hidden="true">🇮🇹</span>
+          Italian
         </SelectItem>
         <SelectItem value="ja">
           <span aria-hidden="true">🇯🇵</span>

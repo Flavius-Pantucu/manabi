@@ -10,7 +10,7 @@ import {
 } from "react";
 import type { Level } from "@/lib/content/types";
 
-export type Language = "es" | "fr" | "ja";
+export type Language = "es" | "fr" | "it" | "ja";
 
 const STORAGE_KEY = "manabi.language";
 
@@ -28,6 +28,7 @@ interface LanguageContextValue {
   isJapanese: boolean;
   isSpanish: boolean;
   isFrench: boolean;
+  isItalian: boolean;
   formatLevel: (level: Level) => string;
 }
 
@@ -39,7 +40,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved === "es" || saved === "fr" || saved === "ja") {
+      if (saved === "es" || saved === "fr" || saved === "it" || saved === "ja") {
         setLanguageState(saved);
         document.documentElement.dataset.lang = saved;
         return;
@@ -73,6 +74,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
         isJapanese: language === "ja",
         isSpanish: language === "es",
         isFrench: language === "fr",
+        isItalian: language === "it",
         formatLevel,
       }}
     >

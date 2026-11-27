@@ -79,7 +79,11 @@ export function QuizContent() {
                 language === "ja" && "font-jp",
               )}
             >
-              {language === "es" || language === "fr" ? "Examen" : "クイズ"}
+              {language === "es" || language === "fr"
+                ? "Examen"
+                : language === "it"
+                  ? "Esame"
+                  : "クイズ"}
             </span>
           </h1>
           <p className="max-w-prose text-sm text-muted-foreground">

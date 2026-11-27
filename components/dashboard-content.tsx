@@ -102,6 +102,13 @@ const frenchGreetings = [
   { jp: "Très bien !", en: "Well done" },
 ];
 
+const italianGreetings = [
+  { jp: "Benvenuto!", en: "Welcome back" },
+  { jp: "Forza!", en: "Keep it up" },
+  { jp: "Fantastico!", en: "Amazing" },
+  { jp: "Benissimo!", en: "Well done" },
+];
+
 export function DashboardContent() {
   const { language, formatLevel } = useLanguage();
   const { user } = useAuth();
@@ -148,7 +155,9 @@ export function DashboardContent() {
         ? spanishGreetings
         : language === "fr"
           ? frenchGreetings
-          : japaneseGreetings;
+          : language === "it"
+            ? italianGreetings
+            : japaneseGreetings;
     setGreeting(pool[Math.floor(Math.random() * pool.length)]);
     setWordIdx(0);
     setRevealed(false);
@@ -203,7 +212,9 @@ export function DashboardContent() {
             ? "Vocabulario"
             : language === "fr"
               ? "Vocabulaire"
-              : "語彙",
+              : language === "it"
+                ? "Vocabolario"
+                : "語彙",
         progress: done("vocab:"),
         total: sum("vocab") * 2,
         href: "/vocabulary",
@@ -224,7 +235,13 @@ export function DashboardContent() {
       {
         label: "Verbs",
         labelJp:
-          language === "es" ? "Verbos" : language === "fr" ? "Verbes" : "動詞",
+          language === "es"
+            ? "Verbos"
+            : language === "fr"
+              ? "Verbes"
+              : language === "it"
+                ? "Verbi"
+                : "動詞",
         progress: done("verb:"),
         total: sum("verbs") * 7,
         href: "/verbs",
@@ -237,7 +254,9 @@ export function DashboardContent() {
             ? "Gramática"
             : language === "fr"
               ? "Grammaire"
-              : "文法",
+              : language === "it"
+                ? "Grammatica"
+                : "文法",
         progress: done("grammar:"),
         total: sum("grammar"),
         href: "/grammar",
@@ -251,7 +270,13 @@ export function DashboardContent() {
     : [];
 
   const langLabel =
-    language === "es" ? "Spanish" : language === "fr" ? "French" : "Japanese";
+    language === "es"
+      ? "Spanish"
+      : language === "fr"
+        ? "French"
+        : language === "it"
+          ? "Italian"
+          : "Japanese";
 
   return (
     <div className="flex flex-col gap-6">

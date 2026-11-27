@@ -442,11 +442,12 @@ type StatsFilter = "all" | Language;
 function cardLanguage(cardId: string): Language {
   if (cardId.startsWith("es:")) return "es";
   if (cardId.startsWith("fr:")) return "fr";
+  if (cardId.startsWith("it:")) return "it";
   return "ja";
 }
 
 function cardDeck(cardId: string): "vocab" | "verbs" | "grammar" | "kanji" | "kana" {
-  const clean = cardId.replace(/^(es|fr):/, "");
+  const clean = cardId.replace(/^(es|fr|it):/, "");
   if (clean.startsWith("vocab:")) return "vocab";
   if (clean.startsWith("verb:")) return "verbs";
   if (clean.startsWith("grammar:")) return "grammar";
@@ -457,6 +458,7 @@ function cardDeck(cardId: string): "vocab" | "verbs" | "grammar" | "kanji" | "ka
 const LANG_META: Record<Language, { label: string; flag: string; dot: string }> = {
   es: { label: "Spanish", flag: "🇪🇸", dot: "bg-red-500" },
   fr: { label: "French", flag: "🇫🇷", dot: "bg-blue-500" },
+  it: { label: "Italian", flag: "🇮🇹", dot: "bg-emerald-500" },
   ja: { label: "Japanese", flag: "🇯🇵", dot: "bg-pink-500" },
 };
 
@@ -492,7 +494,7 @@ export default function ProfilePage() {
       else learning++;
     }
 
-    const perLanguage = (["es", "fr", "ja"] as Language[]).map((lang) => {
+    const perLanguage = (["es", "fr", "it", "ja"] as Language[]).map((lang) => {
       const langEntries = entries.filter(([id]) => cardLanguage(id) === lang);
       let started = 0;
       let langMastered = 0;
@@ -686,6 +688,7 @@ export default function ProfilePage() {
               { id: "all", label: "All", flag: "🌐" },
               { id: "es", label: "Spanish", flag: "🇪🇸" },
               { id: "fr", label: "French", flag: "🇫🇷" },
+              { id: "it", label: "Italian", flag: "🇮🇹" },
               { id: "ja", label: "Japanese", flag: "🇯🇵" },
             ] as const
           ).map((opt) => {
@@ -744,7 +747,7 @@ export default function ProfilePage() {
       </div>
 
       {/* ── Per-Language Breakdown ── */}
-      <div className="grid gap-3 md:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {stats.perLanguage
           .filter((l) => statsFilter === "all" || statsFilter === l.lang)
           .map((l) => {

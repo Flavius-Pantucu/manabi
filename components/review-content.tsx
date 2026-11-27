@@ -65,7 +65,13 @@ export function ReviewContent() {
               language === "ja" && "font-jp",
             )}
           >
-            {language === "es" ? "Repaso" : language === "fr" ? "Révision" : "復習"}
+            {language === "es"
+              ? "Repaso"
+              : language === "fr"
+                ? "Révision"
+                : language === "it"
+                  ? "Ripasso"
+                  : "復習"}
           </span>
         </h1>
         <p className="max-w-prose text-sm text-muted-foreground">

@@ -108,9 +108,11 @@ const IS_JA = /^ja(-|_|$)/i;
 const IS_ES = /^es(-|_|$)/i;
 /** Matches fr, fr-FR, fr-CA, etc. */
 const IS_FR = /^fr(-|_|$)/i;
+/** Matches it, it-IT, it-CH, etc. */
+const IS_IT = /^it(-|_|$)/i;
 
-export function listVoicesForLanguage(lang: "es" | "fr" | "ja" = "ja"): SpeechSynthesisVoice[] {
-  const re = lang === "es" ? IS_ES : lang === "fr" ? IS_FR : IS_JA;
+export function listVoicesForLanguage(lang: "es" | "fr" | "it" | "ja" = "ja"): SpeechSynthesisVoice[] {
+  const re = lang === "es" ? IS_ES : lang === "fr" ? IS_FR : lang === "it" ? IS_IT : IS_JA;
   return refresh()
     .filter((v) => re.test(v.lang))
     .sort((a, b) =>
@@ -175,7 +177,7 @@ export function setRate(r: number) {
  * Order: the learner's explicit choice, then a local ja-JP voice, then any
  * local Japanese voice, then a network one as a last resort.
  */
-export function resolveVoice(lang: "es" | "fr" | "ja" = "ja"): SpeechSynthesisVoice | undefined {
+export function resolveVoice(lang: "es" | "fr" | "it" | "ja" = "ja"): SpeechSynthesisVoice | undefined {
   const list = listVoicesForLanguage(lang);
   if (!list.length) return undefined;
 
@@ -191,7 +193,9 @@ export function resolveVoice(lang: "es" | "fr" | "ja" = "ja"): SpeechSynthesisVo
       ? /^es(-|_)(ES|MX|US|419)$/i
       : lang === "fr"
         ? /^fr(-|_)(FR|CA)$/i
-        : /^ja(-|_)JP$/i;
+        : lang === "it"
+          ? /^it(-|_)(IT|CH)$/i
+          : /^ja(-|_)JP$/i;
   return (
     list.find((v) => v.localService && preferredRe.test(v.lang)) ??
     list.find((v) => v.localService) ??
@@ -209,7 +213,7 @@ export function onlyNetworkVoices(): boolean {
 
 export interface SpeakOptions {
   rate?: number;
-  lang?: "es" | "fr" | "ja";
+  lang?: "es" | "fr" | "it" | "ja";
   onEnd?: () => void;
   onUnavailable?: () => void;
 }
@@ -229,10 +233,10 @@ export function speak(text: string, opts: SpeakOptions = {}): boolean {
   const lang = opts.lang ?? "ja";
   const voice = resolveVoice(lang);
   if (!voice) {
-    if (lang === "es" || lang === "fr") {
+    if (lang === "es" || lang === "fr" || lang === "it") {
       s.cancel();
       const u = new SpeechSynthesisUtterance(text);
-      u.lang = lang === "es" ? "es-ES" : "fr-FR";
+      u.lang = lang === "es" ? "es-ES" : lang === "fr" ? "fr-FR" : "it-IT";
       u.rate = opts.rate ?? getRate();
       u.pitch = 1;
       u.onend = () => opts.onEnd?.();
@@ -247,7 +251,9 @@ export function speak(text: string, opts: SpeakOptions = {}): boolean {
 
   const u = new SpeechSynthesisUtterance(text);
   u.voice = voice;
-  u.lang = voice.lang || (lang === "es" ? "es-ES" : lang === "fr" ? "fr-FR" : "ja-JP");
+  u.lang =
+    voice.lang ||
+    (lang === "es" ? "es-ES" : lang === "fr" ? "fr-FR" : lang === "it" ? "it-IT" : "ja-JP");
   u.rate = opts.rate ?? getRate();
   u.pitch = 1;
   u.onend = () => opts.onEnd?.();

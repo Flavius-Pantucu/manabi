@@ -31,7 +31,7 @@ export interface ReviewItem {
   mode: ReviewMode;
   level?: Level;
   prompt: string;
-  promptLang: "ja" | "es" | "fr" | "en";
+  promptLang: Language | "en";
   instruction: string;
   answer: string;
   answerReading?: string;
@@ -129,7 +129,13 @@ function vocabItems(rows: Vocab[], meanings: string[], language: Language = "ja"
   const out: ReviewItem[] = [];
   const pLang = language;
   const langLabel =
-    language === "es" ? "Spanish" : language === "fr" ? "French" : "Japanese";
+    language === "es"
+      ? "Spanish"
+      : language === "fr"
+        ? "French"
+        : language === "it"
+          ? "Italian"
+          : "Japanese";
   for (const w of rows) {
     // Recognition: see the word, know what it means.
     out.push({
@@ -224,6 +230,16 @@ export const FRENCH_VERB_FORMS = [
   { key: "subjonctif_je", label: "subjunctive (je)" },
 ] as const;
 
+export const ITALIAN_VERB_FORMS = [
+  { key: "presente_io", label: "present (io)" },
+  { key: "presente_tu", label: "present (tu)" },
+  { key: "presente_lui", label: "present (lui/lei)" },
+  { key: "passato_prossimo_io", label: "passato prossimo (io)" },
+  { key: "imperfetto_io", label: "imperfect (io)" },
+  { key: "futuro_io", label: "future (io)" },
+  { key: "congiuntivo_io", label: "subjunctive (io)" },
+] as const;
+
 function verbItems(rows: Verb[], meanings: string[], language: Language = "ja"): ReviewItem[] {
   const out: ReviewItem[] = [];
   const pLang = language;
@@ -232,7 +248,9 @@ function verbItems(rows: Verb[], meanings: string[], language: Language = "ja"):
       ? SPANISH_VERB_FORMS
       : language === "fr"
         ? FRENCH_VERB_FORMS
-        : VERB_FORMS;
+        : language === "it"
+          ? ITALIAN_VERB_FORMS
+          : VERB_FORMS;
   for (const v of rows) {
     out.push({
       cardId: `${v.id}:meaning`,

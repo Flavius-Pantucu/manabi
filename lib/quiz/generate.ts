@@ -106,6 +106,15 @@ const VERB_FORM_LABELS_BY_LANG: Record<Language, Record<string, string>> = {
     futur_je: "future (je)",
     subjonctif_je: "subjunctive (je)",
   },
+  it: {
+    presente_io: "present (io)",
+    presente_tu: "present (tu)",
+    presente_lui: "present (lui/lei)",
+    passato_prossimo_io: "passato prossimo (io)",
+    imperfetto_io: "imperfect (io)",
+    futuro_io: "future (io)",
+    congiuntivo_io: "subjunctive (io)",
+  },
 };
 
 export function generateQuiz(
